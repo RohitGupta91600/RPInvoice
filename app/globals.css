@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+/* ================= BASE ================= */
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #111;
+  background: #fff;
+}
+
+/* ================================================= */
+/* ================= PRINT (A4 FINAL) =============== */
+/* ================================================= */
+@media print {
+
+  /* ===== PAGE SIZE ===== */
+  @page {
+    size: A4;
+    margin: 20mm 10mm 20mm 10mm;
+  }
+
+  html,
+  body {
+    width: 210mm;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* ================================================= */
+  /* ===== INVOICE NO + DATE (REPEAT EVERY PAGE) ===== */
+  /* ================================================= */
+  .print-meta {
+    position: fixed;
+    top: 10mm;
+    left: 10mm;
+    right: 10mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: bold;
+    z-index: 999;
+    background: white;
+    padding-bottom: 2mm;
+    border-bottom: 1px solid black;
+  }
+
+
+  /* ================================================= */
+  /* ================= MAIN CONTENT ================= */
+  /* ================================================= */
+  .print-page {
+    padding-top: 18mm;
+    /* space for print-meta */
+  }
+
+  /* ================================================= */
+  /* ================= HIDE UI ====================== */
+  /* ================================================= */
+  .print\:hidden,
+  button {
+    display: none !important;
+  }
+
+  /* ================================================= */
+  /* ============ FORM ELEMENTS AS TEXT ============== */
+  /* ================================================= */
+  input,
+  select,
+  textarea {
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+  }
+
+  /* hide dropdown arrow */
+  select::-ms-expand {
+    display: none;
+  }
+
+  /* hide placeholder text */
+  ::placeholder {
+    color: transparent !important;
+  }
+
+  /* ================================================= */
+  /* ================= TABLE FIX ==================== */
+  /* ================================================= */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  td,
+  th {
+    border: 1px solid black !important;
+    padding: 4px;
+    vertical-align: top;
+  }
+
+  /* ================================================= */
+  /* ============== AVOID BAD BREAKS ================ */
+  /* ================================================= */
+  .no-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* ================= MOBILE VIEW ================= */
+@media (max-width: 640px) {
+  body {
+    font-size: 13px;
+  }
+
+  table th,
+  table td {
+    padding: 3px;
+  }
+}
