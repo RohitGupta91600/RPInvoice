@@ -66,8 +66,9 @@ export default function Page() {
 
   /* ================= INVOICES ================= */
   const [savedInvoices, setSavedInvoices] = useState<any[]>([]);
-  const [selectedInvoiceIndex, setSelectedInvoiceIndex] =
-    useState<number | "">("");
+  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<number | "">(
+    ""
+  );
 
   const [isReadOnly, setIsReadOnly] = useState(false);
   const canEdit = !isReadOnly && status !== "CANCELLED";
@@ -143,11 +144,7 @@ export default function Page() {
   const deleteItem = (i: number) =>
     canEdit && setItems(items.filter((_, idx) => idx !== i));
 
-  const updateItem = (
-    i: number,
-    field: keyof PurchaseItem,
-    value: any
-  ) => {
+  const updateItem = (i: number, field: keyof PurchaseItem, value: any) => {
     if (!canEdit) return;
     const copy = [...items];
     copy[i] = { ...copy[i], [field]: value };
@@ -163,8 +160,7 @@ export default function Page() {
     ]);
 
   const deleteExchange = (i: number) =>
-    canEdit &&
-    setExchangeItems(exchangeItems.filter((_, idx) => idx !== i));
+    canEdit && setExchangeItems(exchangeItems.filter((_, idx) => idx !== i));
 
   const updateExchange = (
     i: number,
@@ -220,8 +216,19 @@ export default function Page() {
     isPrintingRef.current = true;
 
     await saveInvoice();
-    window.print();
 
+    await fetch("/api/send-bill", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: customer.email || "rpguptainvoice@gmail.com",
+        invoiceNo,
+        customer,
+        finalPayable,
+      }),
+    });
+
+    window.print();
     setTimeout(() => (isPrintingRef.current = false), 800);
   };
 
@@ -240,8 +247,7 @@ export default function Page() {
       }),
     });
 
-    setStatus("CANCELLED");
-    setCancelReason(reason);
+    location.reload();
   };
 
   /* ================= NEW BILL ================= */

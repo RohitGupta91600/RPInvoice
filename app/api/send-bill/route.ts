@@ -1,23 +1,27 @@
 import nodemailer from "nodemailer"
-import invoiceTemplate from "@/lib/invoiceTemplate"
 import { NextResponse } from "next/server"
 
-export async function POST(req:Request){
-const data = await req.json()
+export async function POST(req: Request) {
+  const body = await req.json()
 
-const html = invoiceTemplate(data)
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.MAIL_USER!,
+      pass: process.env.MAIL_PASS!,
+    },
+  })
 
-const t = nodemailer.createTransport({
-service:"gmail",
-auth:{user:process.env.MAIL_USER,pass:process.env.MAIL_PASS}
-})
+  await transporter.sendMail({
+    from: "R P Gupta Invoice <rpguptainvoice@gmail.com>",
+    to: body.to,
+    subject: `Invoice #${body.invoiceNo}`,
+    html: `
+      <h3>Invoice ${body.invoiceNo}</h3>
+      <p>Name: ${body.customer?.name}</p>
+      <p>Total: ₹${body.finalPayable}</p>
+    `,
+  })
 
-await t.sendMail({
-from:process.env.MAIL_USER,
-to:data.to,
-subject:`Invoice ${data.invoiceNo}`,
-html
-})
-
-return NextResponse.json({ok:true})
+  return NextResponse.json({ sent: true })
 }
