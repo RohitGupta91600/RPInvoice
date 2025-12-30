@@ -12,7 +12,7 @@ export default function PurchaseTotal({
   purchaseFinal,
 }: Props) {
   return (
-    <div className="mt-3 border-2 border-black p-2 bg-gray-100">
+    <div className="mt-3 border-2 border-black p-2 bg-gray-400 no-break">
       <div className="flex justify-between">
         <span>New Purchase Total</span>
         <span>₹{purchaseTotal.toFixed(2)}</span>
@@ -25,7 +25,7 @@ export default function PurchaseTotal({
         </div>
       )}
 
-      <div className="flex justify-between font-bold border-t mt-1 pt-1">
+      <div className="flex justify-between font-bold border-t border-black mt-1 pt-1">
         <span>New Purchase Final</span>
         <span>₹{purchaseFinal.toFixed(2)}</span>
       </div>

@@ -5,19 +5,22 @@ type Props = {
 export default function CompanyHeader({ gstEnabled }: Props) {
   const COMPANY = {
     name: "R P Gupta Hall Mark Shop & Bartan Bhandar",
-    address: "Nagina Shah Market, Station road Mashrak,Saran,841417",
+    address: "Nagina Shah Market, Station Road, Mashrak, Saran, 841417",
     phone: "9931864811",
-    gstin: "07A1234F",
+    email: "rpguptajewellers@gmail.com",
+    gstin: "07ABCDE1234F",
   };
 
   return (
-    <div className="flex border-b-2 border-black">
-      <div className="w-2/3 bg-yellow-200 p-2">
-        <p className="font-bold">{COMPANY.name}</p>
-        <p>{COMPANY.address}</p>
-        <p>Phone: {COMPANY.phone}</p>
-        {gstEnabled && <p>GSTIN: {COMPANY.gstin}</p>}
+    <div className="border-b border-black px-2 py-1 text-[12px] leading-[14px] print:text-[11px] print:leading-[13px]">
+      <div className="font-bold text-[15px] print:text-[14px] leading-[16px]">
+        {COMPANY.name}
       </div>
+      <div>{COMPANY.address}</div>
+      <div>Phone: {COMPANY.phone}</div>
+      <p>Email: {COMPANY.email}</p>
+
+      {gstEnabled && <div>GSTIN: {COMPANY.gstin}</div>}
     </div>
   );
 }

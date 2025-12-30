@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import CompanyHeader from "./components/CompanyHeader";
 import BillHeader from "./components/BillHeader";
@@ -10,25 +11,51 @@ import PurchaseTotal from "./components/PurchaseTotal";
 import ExchangeTable from "./components/ExchangeTable";
 import FinalAmount from "./components/FinalAmount";
 import PaymentSection from "./components/PaymentSection";
+import BillFooter from "./components/BillFooter";
 
 import { PurchaseItem, ExchangeItem } from "./types";
 
-export default function JewelleryBillPage() {
-  /* ================= PRINT LOCK ================= */
+export default function Page() {
+  const router = useRouter();
   const isPrintingRef = useRef(false);
 
-  /* ================= INVOICE ================= */
-  const [invoiceNo, setInvoiceNo] = useState("000001");
-  const [dateTime, setDateTime] = useState("");            // original date
-  const [editedDateTime, setEditedDateTime] = useState(""); // edit date
+  /* ================= AUTH ================= */
+  useEffect(() => {
+    if (!document.cookie.includes("logged_in=true")) {
+      router.replace("/login");
+    }
+  }, [router]);
 
-  /* ================= OLD INVOICES ================= */
+  /* ================= META ================= */
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [createdAt, setCreatedAt] = useState("");
+  const [editedAt, setEditedAt] = useState("");
+
+  /* ================= STATUS (IMPORTANT) ================= */
+  const [status, setStatus] = useState<"ACTIVE" | "CANCELLED">("ACTIVE");
+  const [cancelReason, setCancelReason] = useState("");
+
+  /* ================= CUSTOMER ================= */
+  const [customer, setCustomer] = useState<{
+    name: string;
+    phone: string;
+    address: string;
+    email?: string;
+  }>({
+    name: "",
+    phone: "",
+    address: "",
+    email: "",
+  });
+
+  /* ================= INVOICES ================= */
   const [savedInvoices, setSavedInvoices] = useState<any[]>([]);
-  const [selectedInvoiceIndex, setSelectedInvoiceIndex] =
-    useState<number | "">("");
+  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<number | "">(
+    ""
+  );
 
-  /* ================= MODES ================= */
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const canEdit = !isReadOnly && status !== "CANCELLED";
 
   /* ================= GST ================= */
   const [gstEnabled, setGstEnabled] = useState(true);
@@ -48,18 +75,26 @@ export default function JewelleryBillPage() {
   const [exchangeItems, setExchangeItems] = useState<ExchangeItem[]>([]);
   const [paidAmount, setPaidAmount] = useState(0);
   const [dueDateTime, setDueDateTime] = useState("");
+  const [remark, setRemark] = useState("");
 
-  /* ================= LOAD INITIAL ================= */
+  /* ================= LOAD INVOICES ================= */
   useEffect(() => {
-    const invs = JSON.parse(localStorage.getItem("invoices") || "[]");
-    setSavedInvoices(invs);
+    const loadInvoices = async () => {
+      const res = await fetch("/api/invoices");
+      const data = await res.json();
 
-    const current = localStorage.getItem("invoice_no") || "000001";
-    setInvoiceNo(current);
-    setDateTime(new Date().toLocaleString());
+      setSavedInvoices(data.invoices || []);
+      setInvoiceNo(data.nextInvoiceNo || "000001");
+      setCreatedAt(new Date().toLocaleString());
+
+      setStatus("ACTIVE");
+      setCancelReason("");
+    };
+
+    loadInvoices();
   }, []);
 
-  /* ================= LOAD OLD INVOICE ================= */
+  /* ================= LOAD OLD ================= */
   const loadOldInvoice = (index: number) => {
     const inv = savedInvoices[index];
     if (!inv) return;
@@ -68,36 +103,56 @@ export default function JewelleryBillPage() {
     setIsReadOnly(true);
 
     setInvoiceNo(inv.invoiceNo);
-    setDateTime(inv.dateTime); // original date stays
-    setEditedDateTime(inv.editedDateTime || "");
+    setCreatedAt(new Date(inv.createdAt).toLocaleString());
+    setEditedAt(inv.editedAt ? new Date(inv.editedAt).toLocaleString() : "");
+
+    setStatus(inv.status || "ACTIVE");
+    setCancelReason(inv.cancelReason || "");
+
+    setCustomer(inv.customer || { name: "", phone: "", address: "" });
     setGstEnabled(inv.gstEnabled);
-    setItems(inv.items);
-    setExchangeItems(inv.exchangeItems);
-    setPaidAmount(inv.paidAmount);
+    setItems(inv.items || []);
+    setExchangeItems(inv.exchangeItems || []);
+    setPaidAmount(inv.paidAmount || 0);
     setDueDateTime(inv.dueDateTime || "");
+    setRemark(inv.remark || "");
   };
 
-  /* ================= ENABLE EDIT OLD ================= */
+  /* ================= ENABLE EDIT ================= */
   const enableEditOld = () => {
+    if (status === "CANCELLED") return;
     setIsReadOnly(false);
-    setEditedDateTime(new Date().toLocaleString());
+    setEditedAt(new Date().toLocaleString());
   };
-
-  const canEdit = !isReadOnly;
 
   /* ================= HELPERS ================= */
   const addItem = () => canEdit && setItems([...items, emptyItem]);
   const deleteItem = (i: number) =>
     canEdit && setItems(items.filter((_, idx) => idx !== i));
 
-  const updateItem = <K extends keyof PurchaseItem>(
-    i: number,
-    key: K,
-    value: PurchaseItem[K]
-  ) => {
-    if (!canEdit) return;
+  const updateItem = (i: number, field: keyof PurchaseItem, value: any) => {
     const copy = [...items];
-    copy[i][key] = value;
+
+    if (field === "metal") {
+      if (value === "Gold") {
+        copy[i] = {
+          ...copy[i],
+          metal: "Gold",
+          purityType: "22k",
+          purityValue: "22k",
+        };
+      } else {
+        copy[i] = {
+          ...copy[i],
+          metal: "Silver",
+          purityType: "custom",
+          purityValue: "",
+        };
+      }
+    } else {
+      copy[i] = { ...copy[i], [field]: value };
+    }
+
     setItems(copy);
   };
 
@@ -109,115 +164,156 @@ export default function JewelleryBillPage() {
     ]);
 
   const deleteExchange = (i: number) =>
-    canEdit &&
-    setExchangeItems(exchangeItems.filter((_, idx) => idx !== i));
+    canEdit && setExchangeItems(exchangeItems.filter((_, idx) => idx !== i));
 
-  const updateExchange = <K extends keyof ExchangeItem>(
+  const updateExchange = (
     i: number,
-    key: K,
-    value: ExchangeItem[K]
+    field: keyof ExchangeItem,
+    value: string | number
   ) => {
     if (!canEdit) return;
     const copy = [...exchangeItems];
-    copy[i][key] = value;
+    copy[i] = { ...copy[i], [field]: value };
     setExchangeItems(copy);
   };
 
-  /* ================= CALCULATIONS ================= */
-  const purchaseTotal = items.reduce((sum, item) => {
-    const value = item.weight * item.rate;
-    const making = (value * item.makingPercent) / 100;
-    return sum + value + making;
+  /* ================= TOTALS ================= */
+  const purchaseTotal = items.reduce((s, i) => {
+    const base = i.weight * i.rate;
+    return s + base + (base * i.makingPercent) / 100;
   }, 0);
 
   const gstAmount = gstEnabled ? purchaseTotal * 0.03 : 0;
   const purchaseFinal = purchaseTotal + gstAmount;
 
-  const exchangeTotal = exchangeItems.reduce((sum, ex) => {
-    const purity = Number(ex.purity) || 0;
-    return sum + ex.weight * ((ex.rate * purity) / 100);
+  const exchangeTotal = exchangeItems.reduce((s, e) => {
+    const purity = Number(e.purity) || 0;
+    return s + e.weight * ((e.rate * purity) / 100);
   }, 0);
 
   const finalPayable = purchaseFinal - exchangeTotal;
   const dueAmount = Math.max(finalPayable - paidAmount, 0);
 
+  /* ================= SAVE ================= */
+  const saveInvoice = async () => {
+    await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoiceNo,
+        customer,
+        gstEnabled,
+        items,
+        exchangeItems,
+        paidAmount,
+        dueDateTime,
+        remark,
+        status,
+        cancelReason,
+      }),
+    });
+  };
+
   /* ================= PRINT ================= */
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (isPrintingRef.current) return;
     isPrintingRef.current = true;
 
-    const invoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+    await saveInvoice();
 
-    if (selectedInvoiceIndex !== "") {
-      invoices[selectedInvoiceIndex] = {
-        ...invoices[selectedInvoiceIndex],
-        items,
-        exchangeItems,
-        paidAmount,
-        dueDateTime,
-        gstEnabled,
-        editedDateTime,
-      };
-    } else {
-      invoices.push({
-        invoiceNo,
-        dateTime,
-        gstEnabled,
-        items,
-        exchangeItems,
-        paidAmount,
-        dueDateTime,
+    if (customer.email) {
+      await fetch("/api/send-bill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: customer.email,
+          invoiceNo,
+          createdAt,
+          customer,
+          items,
+          finalPayable,
+        }),
       });
-
-      const next = String(Number(invoiceNo) + 1).padStart(6, "0");
-      localStorage.setItem("invoice_no", next);
     }
 
-    localStorage.setItem("invoices", JSON.stringify(invoices));
-    window.print();
+    await fetch("/api/send-bill", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: "rpguptainvoice@gmail.com",
+        invoiceNo,
+        createdAt,
+        customer,
+        items,
+        finalPayable,
+      }),
+    });
 
-    setTimeout(() => {
-      isPrintingRef.current = false;
-    }, 800);
+    window.print();
+    setTimeout(() => (isPrintingRef.current = false), 800);
   };
 
-  /* ================= CREATE NEW BILL ================= */
-  const createNewBill = () => {
-    if (isPrintingRef.current) return;
+  /* ================= CANCEL ================= */
+  const cancelInvoice = async () => {
+    const reason = prompt("Cancel reason?");
+    if (!reason) return;
 
-    const next = String(Number(invoiceNo) + 1).padStart(6, "0");
-    localStorage.setItem("invoice_no", next);
+    await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoiceNo,
+        status: "CANCELLED",
+        cancelReason: reason,
+      }),
+    });
 
-    setInvoiceNo(next);
-    setDateTime(new Date().toLocaleString());
-    setEditedDateTime("");
+    setStatus("CANCELLED");
+    setCancelReason(reason);
+  };
+
+  /* ================= NEW BILL ================= */
+  const createNewBill = async () => {
+    const res = await fetch("/api/invoices");
+    const data = await res.json();
+
+    setInvoiceNo(data.nextInvoiceNo);
+    setCreatedAt(new Date().toLocaleString());
+    setEditedAt("");
     setSelectedInvoiceIndex("");
     setIsReadOnly(false);
 
+    setStatus("ACTIVE");
+    setCancelReason("");
+
+    setCustomer({ name: "", phone: "", address: "" });
     setItems([emptyItem]);
     setExchangeItems([]);
     setPaidAmount(0);
     setDueDateTime("");
+    setRemark("");
   };
 
   /* ================= UI ================= */
   return (
-    <div className="bg-gray-200 min-h-screen p-4">
-      <div className="print-page mx-auto bg-white border-2 border-black p-3">
+    <div className="bg-gray-300 min-h-screen p-4">
+      {/* PRINT HEADER */}
+      <div className="print-meta">
+        <span>Invoice No: {invoiceNo}</span>
+        <span>Date: {createdAt}</span>
+      </div>
 
-        {/* ===== META ===== */}
-        <div className="print-meta">
-          <span>Invoice No: {invoiceNo}</span>
-          <span>Date: {dateTime}</span>
+      {/* CANCEL WATERMARK */}
+      {status === "CANCELLED" && (
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none print:flex">
+          <span className="text-[120px] font-extrabold text-red-600 opacity-20 rotate-[-30deg]">
+            CANCELLED
+          </span>
         </div>
+      )}
 
-        {editedDateTime && (
-          <div className="text-right text-xs font-bold">
-            Edited On: {editedDateTime}
-          </div>
-        )}
-
-        {/* ===== OLD INVOICE CONTROLS ===== */}
+      <div className="print-page mx-auto bg-white border-2 border-black p-3">
+        {/* OLD INVOICE SELECT */}
         <div className="flex gap-3 my-2 print:hidden">
           <select
             className="border px-2 py-1"
@@ -225,31 +321,46 @@ export default function JewelleryBillPage() {
             onChange={(e) => loadOldInvoice(Number(e.target.value))}
           >
             <option value="">-- Select Old Invoice --</option>
-            {savedInvoices.map((inv, idx) => (
-              <option key={idx} value={idx}>
+            {savedInvoices.map((inv, i) => (
+              <option key={i} value={i}>
                 {inv.invoiceNo}
               </option>
             ))}
           </select>
 
-          {isReadOnly && (
-            <button
-              onClick={enableEditOld}
-              className="bg-orange-600 text-white px-4 py-1"
-            >
-              Edit Invoice
-            </button>
+          {isReadOnly && status !== "CANCELLED" && (
+            <>
+              <button
+                onClick={enableEditOld}
+                className="bg-orange-600 text-white px-4 py-1"
+              >
+                Edit
+              </button>
+
+              <button
+                onClick={cancelInvoice}
+                className="bg-red-700 text-white px-4 py-1"
+              >
+                Cancel Invoice
+              </button>
+            </>
           )}
         </div>
 
         <CompanyHeader gstEnabled={gstEnabled} />
+
         <BillHeader
           invoiceNo={invoiceNo}
+          createdAt={createdAt}
           gstEnabled={gstEnabled}
           setGstEnabled={setGstEnabled}
         />
 
-        <CustomerForm />
+        <CustomerForm
+          customer={customer}
+          setCustomer={setCustomer}
+          isReadOnly={!canEdit}
+        />
 
         <PurchaseTable
           items={items}
@@ -280,9 +391,13 @@ export default function JewelleryBillPage() {
           dueAmount={dueAmount}
           dueDateTime={dueDateTime}
           setDueDateTime={setDueDateTime}
+          remark={remark}
+          setRemark={setRemark}
+          isReadOnly={!canEdit}
         />
 
-        {/* ===== ACTIONS ===== */}
+        <BillFooter />
+
         <div className="flex justify-center gap-4 mt-4 print:hidden">
           <button
             onClick={handlePrint}

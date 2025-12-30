@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-/* ================= BASE ================= */
+/* ================================================= */
+/* ================= BASE =========================== */
+/* ================================================= */
+
 html,
 body {
   width: 100%;
@@ -18,21 +21,21 @@ body {
 /* ================================================= */
 /* ================= PRINT (A4 FINAL) =============== */
 /* ================================================= */
+
 @media print {
 
-  /* ===== PAGE SIZE ===== */
+  /* ================= PAGE SETUP ================= */
   @page {
     size: A4;
-    margin: 20mm 10mm 20mm 10mm;
+    margin: 18mm 10mm 18mm 10mm;
   }
 
   html,
   body {
     width: 210mm;
-    height: auto !important;
-    overflow: visible !important;
     background: white !important;
     color: black !important;
+    overflow: visible !important;
   }
 
   /* ================================================= */
@@ -40,26 +43,25 @@ body {
   /* ================================================= */
   .print-meta {
     position: fixed;
-    top: 10mm;
+    top: -1mm;
     left: 10mm;
     right: 10mm;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 11px;
     font-weight: bold;
-    z-index: 999;
-    background: white;
-    padding-bottom: 2mm;
-    border-bottom: 1px solid black;
+    background: transparent;
+    z-index: 9999;
+    .print-page{padding-top:0!important};
+
   }
 
-
   /* ================================================= */
-  /* ================= MAIN CONTENT ================= */
+  /* ============ MAIN CONTENT OFFSET ================= */
   /* ================================================= */
   .print-page {
-    padding-top: 18mm;
-    /* space for print-meta */
+    padding-top: 1mm; /* header ke liye jagah */
   }
 
   /* ================================================= */
@@ -71,27 +73,24 @@ body {
   }
 
   /* ================================================= */
-  /* ============ FORM ELEMENTS AS TEXT ============== */
+  /* ============ FORM ELEMENTS → TEXT =============== */
   /* ================================================= */
   input,
   select,
   textarea {
     border: none !important;
-    outline: none !important;
     background: transparent !important;
     padding: 0 !important;
+    margin: 0 !important;
     box-shadow: none !important;
     appearance: none !important;
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
+    color: black !important;
+    font-size: inherit !important;
+    overflow: hidden !important;
   }
 
-  /* hide dropdown arrow */
-  select::-ms-expand {
-    display: none;
-  }
-
-  /* hide placeholder text */
   ::placeholder {
     color: transparent !important;
   }
@@ -100,9 +99,9 @@ body {
   /* ================= TABLE FIX ==================== */
   /* ================================================= */
   table {
-    width: 100%;
-    border-collapse: collapse;
-    page-break-inside: auto;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important; /* 🔥 MOST IMPORTANT */
   }
 
   thead {
@@ -110,27 +109,84 @@ body {
   }
 
   tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
-  td,
-  th {
+  th,
+  td {
     border: 1px solid black !important;
-    padding: 4px;
-    vertical-align: top;
+    padding: 4px !important;
+    font-size: 11px !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  /* ===== AMOUNT / TOTAL NEVER CUT ===== */
+  th:last-child,
+  td:last-child {
+    white-space: nowrap !important;
+    text-align: right !important;
   }
 
   /* ================================================= */
-  /* ============== AVOID BAD BREAKS ================ */
+  /* ============ REMOVE HORIZONTAL SCROLL ============ */
+  /* ================================================= */
+  * {
+    overflow-x: hidden !important;
+  }
+
+  /* ================================================= */
+  /* ============ PAYMENT / TOTAL BLOCK =============== */
   /* ================================================= */
   .no-break {
-    page-break-inside: avoid;
-    break-inside: avoid;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* ================================================= */
+  /* ================= REMARK PRINT ================== */
+  /* ================================================= */
+  .remark-print {
+    font-size: 11px;
+    margin-top: 6px;
+    white-space: pre-wrap;
+  }
+
+  /* ================================================= */
+  /* ================= FOOTER ======================== */
+  /* ================================================= */
+  .bill-footer {
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 1px solid black;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  /* ================================================= */
+  /* ================= CANCEL WATERMARK =============== */
+  /* ================================================= */
+  .cancelled {
+    position: fixed;
+    top: 45%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 64px;
+    font-weight: bold;
+    color: rgba(200, 0, 0, 0.25);
+    transform: rotate(-25deg);
+    z-index: 99999;
+    pointer-events: none;
   }
 }
 
-/* ================= MOBILE VIEW ================= */
+/* ================================================= */
+/* ================= MOBILE ========================= */
+/* ================================================= */
+
 @media (max-width: 640px) {
   body {
     font-size: 13px;
