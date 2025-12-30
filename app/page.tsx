@@ -15,6 +15,14 @@ import BillFooter from "./components/BillFooter";
 
 import { PurchaseItem, ExchangeItem } from "./types";
 
+/* ================= TYPES ================= */
+type Customer = {
+  name: string;
+  phone: string;
+  address: string;
+  email: string;
+};
+
 export default function Page() {
   const router = useRouter();
   const isPrintingRef = useRef(false);
@@ -26,41 +34,14 @@ export default function Page() {
     }
   }, [router]);
 
-  /* ================= META ================= */
-  const [invoiceNo, setInvoiceNo] = useState("");
-  const [createdAt, setCreatedAt] = useState("");
-  const [editedAt, setEditedAt] = useState("");
-
-  /* ================= STATUS (IMPORTANT) ================= */
-  const [status, setStatus] = useState<"ACTIVE" | "CANCELLED">("ACTIVE");
-  const [cancelReason, setCancelReason] = useState("");
-
-  /* ================= CUSTOMER ================= */
-  const [customer, setCustomer] = useState<{
-    name: string;
-    phone: string;
-    address: string;
-    email?: string;
-  }>({
+  /* ================= CONSTANTS ================= */
+  const emptyCustomer: Customer = {
     name: "",
     phone: "",
     address: "",
     email: "",
-  });
+  };
 
-  /* ================= INVOICES ================= */
-  const [savedInvoices, setSavedInvoices] = useState<any[]>([]);
-  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<number | "">(
-    ""
-  );
-
-  const [isReadOnly, setIsReadOnly] = useState(false);
-  const canEdit = !isReadOnly && status !== "CANCELLED";
-
-  /* ================= GST ================= */
-  const [gstEnabled, setGstEnabled] = useState(true);
-
-  /* ================= ITEMS ================= */
   const emptyItem: PurchaseItem = {
     name: "",
     metal: "Gold",
@@ -71,6 +52,30 @@ export default function Page() {
     makingPercent: 8,
   };
 
+  /* ================= META ================= */
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [createdAt, setCreatedAt] = useState("");
+  const [editedAt, setEditedAt] = useState("");
+
+  /* ================= STATUS ================= */
+  const [status, setStatus] = useState<"ACTIVE" | "CANCELLED">("ACTIVE");
+  const [cancelReason, setCancelReason] = useState("");
+
+  /* ================= CUSTOMER ================= */
+  const [customer, setCustomer] = useState<Customer>(emptyCustomer);
+
+  /* ================= INVOICES ================= */
+  const [savedInvoices, setSavedInvoices] = useState<any[]>([]);
+  const [selectedInvoiceIndex, setSelectedInvoiceIndex] =
+    useState<number | "">("");
+
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const canEdit = !isReadOnly && status !== "CANCELLED";
+
+  /* ================= GST ================= */
+  const [gstEnabled, setGstEnabled] = useState(true);
+
+  /* ================= ITEMS ================= */
   const [items, setItems] = useState<PurchaseItem[]>([emptyItem]);
   const [exchangeItems, setExchangeItems] = useState<ExchangeItem[]>([]);
   const [paidAmount, setPaidAmount] = useState(0);
@@ -83,18 +88,19 @@ export default function Page() {
       const res = await fetch("/api/invoices");
       const data = await res.json();
 
-      setSavedInvoices(data.invoices || []);
+      setSavedInvoices(Array.isArray(data.invoices) ? data.invoices : []);
       setInvoiceNo(data.nextInvoiceNo || "000001");
       setCreatedAt(new Date().toLocaleString());
 
       setStatus("ACTIVE");
       setCancelReason("");
+      setIsReadOnly(false);
     };
 
     loadInvoices();
   }, []);
 
-  /* ================= LOAD OLD ================= */
+  /* ================= LOAD OLD INVOICE ================= */
   const loadOldInvoice = (index: number) => {
     const inv = savedInvoices[index];
     if (!inv) return;
@@ -109,7 +115,13 @@ export default function Page() {
     setStatus(inv.status || "ACTIVE");
     setCancelReason(inv.cancelReason || "");
 
-    setCustomer(inv.customer || { name: "", phone: "", address: "" });
+    setCustomer({
+      name: inv.customer?.name || "",
+      phone: inv.customer?.phone || "",
+      address: inv.customer?.address || "",
+      email: inv.customer?.email || "",
+    });
+
     setGstEnabled(inv.gstEnabled);
     setItems(inv.items || []);
     setExchangeItems(inv.exchangeItems || []);
@@ -125,37 +137,24 @@ export default function Page() {
     setEditedAt(new Date().toLocaleString());
   };
 
-  /* ================= HELPERS ================= */
+  /* ================= ITEM HELPERS ================= */
   const addItem = () => canEdit && setItems([...items, emptyItem]);
+
   const deleteItem = (i: number) =>
     canEdit && setItems(items.filter((_, idx) => idx !== i));
 
-  const updateItem = (i: number, field: keyof PurchaseItem, value: any) => {
+  const updateItem = (
+    i: number,
+    field: keyof PurchaseItem,
+    value: any
+  ) => {
+    if (!canEdit) return;
     const copy = [...items];
-
-    if (field === "metal") {
-      if (value === "Gold") {
-        copy[i] = {
-          ...copy[i],
-          metal: "Gold",
-          purityType: "22k",
-          purityValue: "22k",
-        };
-      } else {
-        copy[i] = {
-          ...copy[i],
-          metal: "Silver",
-          purityType: "custom",
-          purityValue: "",
-        };
-      }
-    } else {
-      copy[i] = { ...copy[i], [field]: value };
-    }
-
+    copy[i] = { ...copy[i], [field]: value };
     setItems(copy);
   };
 
+  /* ================= EXCHANGE HELPERS ================= */
   const addExchange = () =>
     canEdit &&
     setExchangeItems([
@@ -164,7 +163,8 @@ export default function Page() {
     ]);
 
   const deleteExchange = (i: number) =>
-    canEdit && setExchangeItems(exchangeItems.filter((_, idx) => idx !== i));
+    canEdit &&
+    setExchangeItems(exchangeItems.filter((_, idx) => idx !== i));
 
   const updateExchange = (
     i: number,
@@ -178,17 +178,17 @@ export default function Page() {
   };
 
   /* ================= TOTALS ================= */
-  const purchaseTotal = items.reduce((s, i) => {
+  const purchaseTotal = items.reduce((sum, i) => {
     const base = i.weight * i.rate;
-    return s + base + (base * i.makingPercent) / 100;
+    return sum + base + (base * i.makingPercent) / 100;
   }, 0);
 
   const gstAmount = gstEnabled ? purchaseTotal * 0.03 : 0;
   const purchaseFinal = purchaseTotal + gstAmount;
 
-  const exchangeTotal = exchangeItems.reduce((s, e) => {
+  const exchangeTotal = exchangeItems.reduce((sum, e) => {
     const purity = Number(e.purity) || 0;
-    return s + e.weight * ((e.rate * purity) / 100);
+    return sum + e.weight * ((e.rate * purity) / 100);
   }, 0);
 
   const finalPayable = purchaseFinal - exchangeTotal;
@@ -220,36 +220,8 @@ export default function Page() {
     isPrintingRef.current = true;
 
     await saveInvoice();
-
-    if (customer.email) {
-      await fetch("/api/send-bill", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: customer.email,
-          invoiceNo,
-          createdAt,
-          customer,
-          items,
-          finalPayable,
-        }),
-      });
-    }
-
-    await fetch("/api/send-bill", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: "rpguptainvoice@gmail.com",
-        invoiceNo,
-        createdAt,
-        customer,
-        items,
-        finalPayable,
-      }),
-    });
-
     window.print();
+
     setTimeout(() => (isPrintingRef.current = false), 800);
   };
 
@@ -286,7 +258,7 @@ export default function Page() {
     setStatus("ACTIVE");
     setCancelReason("");
 
-    setCustomer({ name: "", phone: "", address: "" });
+    setCustomer(emptyCustomer);
     setItems([emptyItem]);
     setExchangeItems([]);
     setPaidAmount(0);
@@ -297,7 +269,7 @@ export default function Page() {
   /* ================= UI ================= */
   return (
     <div className="bg-gray-300 min-h-screen p-4">
-      {/* PRINT HEADER */}
+      {/* PRINT HEADER (REPEATS EVERY PAGE VIA CSS) */}
       <div className="print-meta">
         <span>Invoice No: {invoiceNo}</span>
         <span>Date: {createdAt}</span>
@@ -305,15 +277,11 @@ export default function Page() {
 
       {/* CANCEL WATERMARK */}
       {status === "CANCELLED" && (
-        <div className="fixed inset-0 flex items-center justify-center pointer-events-none print:flex">
-          <span className="text-[120px] font-extrabold text-red-600 opacity-20 rotate-[-30deg]">
-            CANCELLED
-          </span>
-        </div>
+        <div className="cancelled print:block hidden">CANCELLED</div>
       )}
 
       <div className="print-page mx-auto bg-white border-2 border-black p-3">
-        {/* OLD INVOICE SELECT */}
+        {/* OLD INVOICE */}
         <div className="flex gap-3 my-2 print:hidden">
           <select
             className="border px-2 py-1"
