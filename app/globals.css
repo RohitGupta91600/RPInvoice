@@ -1,8 +1,6 @@
 @import "tailwindcss";
 
-/* ================================================= */
-/* ================= BASE =========================== */
-/* ================================================= */
+/* ================= BASE ================= */
 
 html,
 body {
@@ -18,13 +16,10 @@ body {
   background: #ffffff;
 }
 
-/* ================================================= */
-/* ================= PRINT (FINAL) ================= */
-/* ================================================= */
+/* ================= PRINT ================= */
 
 @media print {
 
-  /* ================= PAGE SETUP ================= */
   @page {
     size: A4;
     margin: 18mm 10mm;
@@ -32,25 +27,24 @@ body {
 
   html,
   body {
-    width: 210mm;
     background: white !important;
   }
 
-  /* ================================================= */
-  /* ============ TEXT COLOR → BLUE ================= */
-  /* ================================================= */
-  body,
   body *:not(img) {
-    color: #0b3a82 !important; /* 🔵 professional blue */
+    color: #0b3a82 !important;
     background: transparent !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* ================================================= */
-  /* ================= WATERMARK ===================== */
-  /* ================================================= */
-  body::before {
+  .print-page {
+    position: relative;
+    width: 190mm;
+    margin: auto;
+    background: transparent !important;
+  }
+
+  .print-page::before {
     content: "";
     position: fixed;
     inset: 0;
@@ -58,28 +52,11 @@ body {
     background-repeat: no-repeat;
     background-position: center;
     background-size: 70%;
-    opacity: 0.08; /* watermark strength */
+    opacity: 0.08;
     pointer-events: none;
     z-index: 0;
   }
 
-  /* 🔥 IMPORTANT: watermark image COLOR SAFE */
-  img {
-    filter: none !important;
-  }
-
-  /* ================================================= */
-  /* ============== MAIN CONTENT ===================== */
-  /* ================================================= */
-  .print-page {
-    position: relative;
-    z-index: 1;
-    background: transparent !important;
-  }
-
-  /* ================================================= */
-  /* ===== INVOICE NO + DATE (ALL PAGES) ============= */
-  /* ================================================= */
   .print-meta {
     position: fixed;
     top: -1mm;
@@ -89,21 +66,14 @@ body {
     justify-content: space-between;
     font-size: 11px;
     font-weight: bold;
-    background: transparent;
     z-index: 9999;
   }
 
-  /* ================================================= */
-  /* ================= HIDE UI ====================== */
-  /* ================================================= */
   .print\:hidden,
   button {
     display: none !important;
   }
 
-  /* ================================================= */
-  /* ============ INPUT → TEXT ======================= */
-  /* ================================================= */
   input,
   select,
   textarea {
@@ -120,22 +90,10 @@ body {
     color: transparent !important;
   }
 
-  /* ================================================= */
-  /* ================= TABLE ========================= */
-  /* ================================================= */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
-    table-layout: fixed !important;
-  }
-
-  thead {
-    display: table-header-group;
-  }
-
-  tr {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    table-layout: auto !important;
   }
 
   th,
@@ -145,18 +103,16 @@ body {
     font-size: 11px !important;
     text-align: center !important;
     word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
   }
 
-  th:last-child,
-  td:last-child {
-    text-align: right !important;
-    white-space: nowrap !important;
-    font-weight: bold !important;
+  tr,
+  th,
+  td {
+    page-break-inside: avoid !important;
   }
 
-  /* ================================================= */
-  /* ================= FOOTER ======================== */
-  /* ================================================= */
   .bill-footer {
     margin-top: 10px;
     padding-top: 6px;
@@ -166,9 +122,6 @@ body {
     font-weight: bold;
   }
 
-  /* ================================================= */
-  /* ================= CANCEL STAMP ================== */
-  /* ================================================= */
   .cancelled {
     position: fixed;
     top: 45%;
@@ -177,23 +130,18 @@ body {
     text-align: center;
     font-size: 64px;
     font-weight: bold;
-    color: rgba(11, 58, 130, 0.25); /* blue cancel */
+    color: rgba(11, 58, 130, 0.25);
     transform: rotate(-25deg);
     pointer-events: none;
     z-index: 99999;
   }
 
-  /* ================================================= */
-  /* ================= SAFETY ======================== */
-  /* ================================================= */
   * {
     overflow: visible !important;
   }
 }
 
-/* ================================================= */
-/* ================= MOBILE ========================= */
-/* ================================================= */
+/* ================= MOBILE ================= */
 
 @media (max-width: 640px) {
   body {

@@ -1,39 +1,26 @@
-import nodemailer from "nodemailer";
-import { NextResponse } from "next/server";
-import invoiceTemplate from "@/lib/invoiceTemplate";
+import nodemailer from "nodemailer"
+import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
-  try {
-    const data = await req.json();
+  const data = await req.json()
 
-    const companyEmail = process.env.COMPANY_EMAIL!;
-    const companyPass = process.env.COMPANY_EMAIL_PASS!;
+  const COMPANY = process.env.MAIL_USER!
+  const PASS = process.env.MAIL_PASS!
 
-    const recipients = data.customer?.email
-      ? [companyEmail, data.customer.email]
-      : [companyEmail];
+  const recipients = ["rohitgupta91600@gmail.com"]
+  if (data.customer?.email) recipients.push(data.customer.email)
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: companyEmail,
-        pass: companyPass,
-      },
-    });
+  const t = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: COMPANY, pass: PASS }
+  })
 
-    await transporter.sendMail({
-      from: `"RP Invoice" <${companyEmail}>`,
-      to: recipients,
-      subject: `Invoice #${data.invoiceNo}`,
-      html: invoiceTemplate(data), // 🔥 SAME PRINT TEMPLATE
-    });
+  await t.sendMail({
+    from: `R P Gupta Invoice <${COMPANY}>`,
+    to: recipients,
+    subject: `Invoice #${data.invoiceNo}`,
+    html: data.html
+  })
 
-    return NextResponse.json({ sent: true });
-  } catch (err: any) {
-    console.error("MAIL ERROR:", err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ sent: true })
 }

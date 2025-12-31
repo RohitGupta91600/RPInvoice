@@ -1,84 +1,46 @@
-export default function invoiceTemplate(data: any) {
+export default function invoiceTemplate(inv: any) {
   return `
-  <html>
-    <head>
-      <style>
-        body { font-family: Arial; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-        th, td { border: 1px solid black; padding: 4px; text-align: center; }
-        th:last-child, td:last-child { text-align: right; }
-        .header {
-          display: flex;
-          justify-content: space-between;
-          font-weight: bold;
-          border-bottom: 1px solid black;
-          margin-bottom: 6px;
-        }
-      </style>
-    </head>
+  <div style="font-family:Arial;max-width:800px;margin:auto;border:2px solid #000;padding:12px">
 
-    <body>
-      <div class="header">
-        <div>
-          <b>R P Gupta Hall Mark Shop & Bartan Bhandar</b><br/>
-          Nagina Shah Market, Station Road, Mashrak, Saran 841417<br/>
-          Phone: 9931648111<br/>
-          GSTIN: 07ABCDE1234F
-        </div>
-        <div>
-          Invoice No: ${data.invoiceNo}<br/>
-          Date: ${data.createdAt || ""}
-        </div>
-      </div>
+    <h2 style="text-align:center">R. P. GUPTA</h2>
+    <p style="text-align:center">Hallmark Shop & Bartan Bhandar</p>
+    <hr/>
 
-      <b>Bill To:</b><br/>
-      ${data.customer?.name || ""}<br/>
-      ${data.customer?.address || ""}<br/><br/>
+    <p><b>Invoice No:</b> ${inv.invoiceNo}</p>
+    <p><b>Date:</b> ${inv.createdAt}</p>
 
-      <table>
+    <h3>Customer</h3>
+    <p>${inv.customer?.name || ""}</p>
+    <p>${inv.customer?.phone || ""}</p>
+    <p>${inv.customer?.email || ""}</p>
+
+    <table width="100%" border="1" cellspacing="0" cellpadding="4">
+      <tr>
+        <th>Item</th>
+        <th>Metal</th>
+        <th>Wt</th>
+        <th>Rate</th>
+        <th>Making%</th>
+        <th>Total</th>
+      </tr>
+      ${(inv.items || []).map((i:any)=>`
         <tr>
-          <th>Sr</th>
-          <th>Item</th>
-          <th>Metal</th>
-          <th>Purity</th>
-          <th>Wt (gm)</th>
-          <th>Rate</th>
-          <th>Making %</th>
-          <th>Amount</th>
+          <td>${i.name}</td>
+          <td>${i.metal}</td>
+          <td>${i.weight}</td>
+          <td>${i.rate}</td>
+          <td>${i.makingPercent}%</td>
+          <td>${(i.weight*i.rate).toFixed(2)}</td>
         </tr>
+      `).join("")}
+    </table>
 
-        ${
-          (data.items || [])
-            .map((i: any, idx: number) => {
-              const base = i.weight * i.rate;
-              const total = base + (base * i.makingPercent) / 100;
+    <h3>Final Amount: ₹${inv.finalPayable}</h3>
+    <p>Paid: ₹${inv.paidAmount}</p>
+    <p>Due: ₹${inv.dueAmount}</p>
 
-              return `
-              <tr>
-                <td>${idx + 1}</td>
-                <td>${i.item}</td>
-                <td>${i.metal}</td>
-                <td>${i.purityType}</td>
-                <td>${i.weight}</td>
-                <td>${i.rate}</td>
-                <td>${i.makingPercent}%</td>
-                <td>₹${total.toFixed(2)}</td>
-              </tr>
-            `;
-            })
-            .join("")
-        }
-      </table>
+    ${inv.status === "CANCELLED" ? `<h1 style="color:red;text-align:center">CANCELLED</h1>` : ``}
 
-      <h3 style="text-align:right;margin-top:10px">
-        Final Payable Amount: ₹${Number(data.finalPayable).toFixed(2)}
-      </h3>
-
-      <p style="font-size:11px">
-        NOTE: We deal in all kinds of Gold Jewellery, Rings, Chains, Bangles,
-        Silver items, Bartan & Hallmarked Jewellery.
-      </p>
-    </body>
-  </html>
-  `;
+  </div>
+  `
 }

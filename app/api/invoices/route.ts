@@ -1,92 +1,60 @@
-import { NextResponse } from "next/server";
-import { client } from "@/lib/mongo";
+import { NextResponse } from "next/server"
+import { client } from "@/lib/mongo"
 
 /* ================= GET ================= */
 export async function GET() {
   try {
-    await client.connect();
+    await client.connect()
+    const col = client.db("invoiceDB").collection("invoices")
 
-    const col = client.db("invoiceDB").collection("invoices");
+    const invoices = await col.find({}).sort({ invoiceNo: 1 }).toArray()
 
-    const invoices = await col
-      .find({})
-      .sort({ invoiceNo: 1 })
-      .toArray();
+    const lastNo = invoices.length > 0 ? invoices[invoices.length - 1].invoiceNo : "000000"
+    const nextInvoiceNo = String(Number(lastNo) + 1).padStart(6, "0")
 
-    const lastNo =
-      invoices.length > 0 ? invoices[invoices.length - 1].invoiceNo : "000000";
-
-    const nextInvoiceNo = String(Number(lastNo) + 1).padStart(6, "0");
-
-    return NextResponse.json({
-      invoices,
-      nextInvoiceNo,
-    });
+    return NextResponse.json({ invoices, nextInvoiceNo })
   } catch (err) {
-    console.error("GET /api/invoices error:", err);
-    return NextResponse.json(
-      { error: "Failed to load invoices" },
-      { status: 500 }
-    );
+    console.error("GET /api/invoices:", err)
+    return NextResponse.json({ error: "Failed to load invoices" }, { status: 500 })
   }
 }
 
 /* ================= POST ================= */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json()
+    if (!body.invoiceNo) return NextResponse.json({ error: "Invoice number missing" }, { status: 400 })
 
-    if (!body.invoiceNo) {
-      return NextResponse.json(
-        { error: "Invoice number missing" },
-        { status: 400 }
-      );
-    }
-
-    await client.connect();
-    const col = client.db("invoiceDB").collection("invoices");
-
-    const existing = await col.findOne({ invoiceNo: body.invoiceNo });
+    await client.connect()
+    const col = client.db("invoiceDB").collection("invoices")
+    const existing = await col.findOne({ invoiceNo: body.invoiceNo })
 
     /* ---------- CANCEL ---------- */
     if (body.status === "CANCELLED") {
       await col.updateOne(
         { invoiceNo: body.invoiceNo },
-        {
-          $set: {
-            status: "CANCELLED",
-            cancelReason: body.cancelReason || "",
-            cancelledAt: new Date(),
-          },
-        }
-      );
-
-      return NextResponse.json({ cancelled: true });
+        { $set: { status: "CANCELLED", cancelReason: body.cancelReason || "", cancelledAt: new Date() } }
+      )
+      return NextResponse.json({ cancelled: true })
     }
 
-    /* ---------- BLOCK EDIT CANCELLED ---------- */
+    /* ---------- HARD LOCK ---------- */
     if (existing && existing.status === "CANCELLED") {
-      return NextResponse.json(
-        { error: "Cancelled invoice cannot be edited" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Invoice cancelled forever" }, { status: 403 })
     }
 
-    /* ---------- CALCULATIONS ---------- */
+    /* ---------- SERVER SIDE TOTAL ---------- */
     const purchaseTotal = (body.items || []).reduce((s: number, i: any) => {
-      const base = i.weight * i.rate;
-      return s + base + (base * i.makingPercent) / 100;
-    }, 0);
+      const base = i.weight * i.rate
+      return s + base + (base * i.makingPercent) / 100
+    }, 0)
 
-    const exchangeTotal = (body.exchangeItems || []).reduce(
-      (s: number, e: any) => {
-        const purity = Number(e.purity) || 0;
-        return s + e.weight * ((e.rate * purity) / 100);
-      },
-      0
-    );
+    const exchangeTotal = (body.exchangeItems || []).reduce((s: number, e: any) => {
+      const purity = Number(e.purity) || 0
+      return s + e.weight * ((e.rate * purity) / 100)
+    }, 0)
 
-    const finalPayable = purchaseTotal - exchangeTotal;
+    const finalPayable = purchaseTotal - exchangeTotal
 
     /* ---------- UPSERT SAVE ---------- */
     await col.updateOne(
@@ -102,23 +70,20 @@ export async function POST(req: Request) {
           remark: body.remark || "",
           finalPayable,
           status: "ACTIVE",
-          editedAt: new Date(),
+          editedAt: new Date()
         },
         $setOnInsert: {
           createdAt: new Date(),
           cancelReason: null,
-          cancelledAt: null,
-        },
+          cancelledAt: null
+        }
       },
       { upsert: true }
-    );
+    )
 
-    return NextResponse.json({ saved: true });
+    return NextResponse.json({ saved: true })
   } catch (err) {
-    console.error("POST /api/invoices error:", err);
-    return NextResponse.json(
-      { error: "Failed to save invoice" },
-      { status: 500 }
-    );
+    console.error("POST /api/invoices:", err)
+    return NextResponse.json({ error: "Failed to save invoice" }, { status: 500 })
   }
 }
