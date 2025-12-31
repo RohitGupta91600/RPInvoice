@@ -1,15 +1,15 @@
 type Customer = {
-  name: string
-  phone: string
-  address: string
-  email: string
-}
+  name: string;
+  phone: string;
+  address: string;
+  email: string;
+};
 
 type Props = {
-  customer: Customer
-  setCustomer: React.Dispatch<React.SetStateAction<Customer>>
-  isReadOnly?: boolean
-}
+  customer: Customer;
+  setCustomer: React.Dispatch<React.SetStateAction<Customer>>;
+  isReadOnly?: boolean;
+};
 
 export default function CustomerForm({
   customer,
@@ -47,6 +47,10 @@ export default function CustomerForm({
         onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
       />
 
+      {customer.email && (
+        <p className="hidden print:block text-xs">{customer.email}</p>
+      )}
+
       <input
         type="text"
         className="border w-full px-1"
@@ -56,5 +60,5 @@ export default function CustomerForm({
         onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
       />
     </div>
-  )
+  );
 }

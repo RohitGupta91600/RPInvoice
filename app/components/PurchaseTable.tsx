@@ -27,29 +27,31 @@ export default function PurchaseTable({
         <table className="w-full border border-black min-w-[800px] print:min-w-0 print:text-xs">
           <thead className="bg-blue-900 text-white print:bg-transparent print:text-black">
             <tr>
-              <th className="border p-1 print:p-0.5">Sr</th>
-              <th className="border p-1 print:p-0.5">Item</th>
-              <th className="border p-1 print:p-0.5">Metal</th>
-              <th className="border p-1 print:p-0.5">Purity</th>
-              <th className="border p-1 print:p-0.5">Wt (gm)</th>
-              <th className="border p-1 print:p-0.5">₹/gm</th>
-              <th className="border p-1 print:p-0.5">Making %</th>
-              <th className="border p-1 print:p-0.5">Total</th>
+              <th className="border p-1">Sr</th>
+              <th className="border p-1">Item</th>
+              <th className="border p-1">Metal</th>
+              <th className="border p-1">Purity</th>
+              <th className="border p-1">Wt (gm)</th>
+              <th className="border p-1">₹/gm</th>
+              <th className="border p-1">Making %</th>
+              <th className="border p-1">Total</th>
               <th className="border p-1 print:hidden">❌</th>
             </tr>
           </thead>
 
           <tbody>
             {items.map((item, i) => {
-              const value = item.weight * item.rate;
-              const making = (value * item.makingPercent) / 100;
-              const total = value + making;
+              const base = item.weight * item.rate;
+              const making = (base * item.makingPercent) / 100;
+              const total = base + making;
 
               return (
                 <tr key={i} className="text-center">
-                  <td className="border p-1 print:p-0.5">{i + 1}</td>
+                  {/* SR */}
+                  <td className="border p-1">{i + 1}</td>
 
-                  <td className="border p-1 print:p-0.5">
+                  {/* ITEM */}
+                  <td className="border p-1">
                     <input
                       className="border w-full px-1 print:border-0"
                       value={item.name}
@@ -60,7 +62,8 @@ export default function PurchaseTable({
                     />
                   </td>
 
-                  <td className="border p-1 print:p-0.5">
+                  {/* METAL */}
+                  <td className="border p-1">
                     <select
                       className="border print:border-0"
                       value={item.metal}
@@ -74,20 +77,18 @@ export default function PurchaseTable({
                     </select>
                   </td>
 
-                  <td className="border p-1 print:p-0.5">
+                  {/* PURITY */}
+                  <td className="border p-1">
                     {item.metal === "Gold" ? (
                       <>
+                        {/* GOLD → DROPDOWN */}
                         <select
                           className="border print:border-0 print:hidden"
                           value={item.purityType}
                           disabled={!canEdit}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            updateItem(i, "purityType", v);
-                            if (v !== "custom") {
-                              updateItem(i, "purityValue", v);
-                            }
-                          }}
+                          onChange={(e) =>
+                            updateItem(i, "purityType", e.target.value)
+                          }
                         >
                           <option value="18k">18k</option>
                           <option value="22k">22k</option>
@@ -95,15 +96,17 @@ export default function PurchaseTable({
                           <option value="custom">Custom</option>
                         </select>
 
+                        {/* PRINT VIEW */}
                         <span className="hidden print:inline">
-                          {item.purityType !== "custom"
-                            ? item.purityType
-                            : item.purityValue}
+                          {item.purityType === "custom"
+                            ? item.purityValue
+                            : item.purityType}
                         </span>
 
+                        {/* CUSTOM INPUT */}
                         {item.purityType === "custom" && (
                           <input
-                            className="border w-14 ml-1 px-1 print:border-0 print:hidden"
+                            className="border w-14 ml-1 px-1 print:hidden"
                             placeholder="Purity"
                             value={item.purityValue}
                             disabled={!canEdit}
@@ -115,12 +118,13 @@ export default function PurchaseTable({
                       </>
                     ) : (
                       <>
+                        {/* SILVER → ONLY INPUT */}
                         <span className="hidden print:inline">
                           {item.purityValue}
                         </span>
 
                         <input
-                          className="border w-14 ml-1 px-1 print:border-0 print:hidden"
+                          className="border w-14 px-1 print:hidden"
                           placeholder="Purity"
                           value={item.purityValue}
                           disabled={!canEdit}
@@ -132,11 +136,12 @@ export default function PurchaseTable({
                     )}
                   </td>
 
-                  <td className="border p-1 print:p-0.5">
+                  {/* WEIGHT */}
+                  <td className="border p-1">
                     <input
                       type="number"
                       className="border w-16 print:border-0"
-                      value={item.weight === 0 ? "" : item.weight}
+                      value={item.weight || ""}
                       disabled={!canEdit}
                       onChange={(e) =>
                         updateItem(i, "weight", Number(e.target.value))
@@ -144,11 +149,12 @@ export default function PurchaseTable({
                     />
                   </td>
 
-                  <td className="border p-1 print:p-0.5">
+                  {/* RATE */}
+                  <td className="border p-1">
                     <input
                       type="number"
                       className="border w-24 print:border-0"
-                      value={item.rate === 0 ? "" : item.rate}
+                      value={item.rate || ""}
                       disabled={!canEdit}
                       onChange={(e) =>
                         updateItem(i, "rate", Number(e.target.value))
@@ -156,7 +162,8 @@ export default function PurchaseTable({
                     />
                   </td>
 
-                  <td className="border p-1 print:p-0.5">
+                  {/* MAKING */}
+                  <td className="border p-1">
                     <select
                       className="border w-20 print:border-0"
                       value={item.makingPercent}
@@ -177,10 +184,12 @@ export default function PurchaseTable({
                     </select>
                   </td>
 
-                  <td className="border p-1 print:p-0.5 font-bold whitespace-nowrap">
+                  {/* TOTAL */}
+                  <td className="border p-1 font-bold whitespace-nowrap">
                     ₹{total.toFixed(2)}
                   </td>
 
+                  {/* DELETE */}
                   <td className="border p-1 print:hidden">
                     {canEdit && (
                       <button

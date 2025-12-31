@@ -55,7 +55,6 @@ export default function Page() {
   /* ================= META ================= */
   const [invoiceNo, setInvoiceNo] = useState("");
   const [createdAt, setCreatedAt] = useState("");
-  const [editedAt, setEditedAt] = useState("");
 
   /* ================= STATUS ================= */
   const [status, setStatus] = useState<"ACTIVE" | "CANCELLED">("ACTIVE");
@@ -66,9 +65,8 @@ export default function Page() {
 
   /* ================= INVOICES ================= */
   const [savedInvoices, setSavedInvoices] = useState<any[]>([]);
-  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<number | "">(
-    ""
-  );
+  const [selectedInvoiceIndex, setSelectedInvoiceIndex] =
+    useState<number | "">("");
 
   const [isReadOnly, setIsReadOnly] = useState(false);
   const canEdit = !isReadOnly && status !== "CANCELLED";
@@ -111,7 +109,6 @@ export default function Page() {
 
     setInvoiceNo(inv.invoiceNo);
     setCreatedAt(new Date(inv.createdAt).toLocaleString());
-    setEditedAt(inv.editedAt ? new Date(inv.editedAt).toLocaleString() : "");
 
     setStatus(inv.status || "ACTIVE");
     setCancelReason(inv.cancelReason || "");
@@ -131,11 +128,10 @@ export default function Page() {
     setRemark(inv.remark || "");
   };
 
-  /* ================= ENABLE EDIT ================= */
+  /* ================= EDIT OLD ================= */
   const enableEditOld = () => {
     if (status === "CANCELLED") return;
     setIsReadOnly(false);
-    setEditedAt(new Date().toLocaleString());
   };
 
   /* ================= ITEM HELPERS ================= */
@@ -144,14 +140,46 @@ export default function Page() {
   const deleteItem = (i: number) =>
     canEdit && setItems(items.filter((_, idx) => idx !== i));
 
-  const updateItem = (i: number, field: keyof PurchaseItem, value: any) => {
-    if (!canEdit) return;
-    const copy = [...items];
-    copy[i] = { ...copy[i], [field]: value };
-    setItems(copy);
+  const updateItem = (
+    i: number,
+    field: keyof PurchaseItem,
+    value: any
+  ) => {
+    setItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== i) return item;
+
+        if (field === "metal") {
+          if (value === "Gold") {
+            return {
+              ...item,
+              metal: "Gold",
+              purityType: "22k",
+              purityValue: "22k",
+            };
+          }
+          return {
+            ...item,
+            metal: "Silver",
+            purityType: "",
+            purityValue: "",
+          };
+        }
+
+        if (field === "purityType") {
+          return {
+            ...item,
+            purityType: value,
+            purityValue: value === "custom" ? "" : value,
+          };
+        }
+
+        return { ...item, [field]: value };
+      })
+    );
   };
 
-  /* ================= EXCHANGE HELPERS ================= */
+  /* ================= EXCHANGE ================= */
   const addExchange = () =>
     canEdit &&
     setExchangeItems([
@@ -216,19 +244,8 @@ export default function Page() {
     isPrintingRef.current = true;
 
     await saveInvoice();
-
-    await fetch("/api/send-bill", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: customer.email || "rpguptainvoice@gmail.com",
-        invoiceNo,
-        customer,
-        finalPayable,
-      }),
-    });
-
     window.print();
+
     setTimeout(() => (isPrintingRef.current = false), 800);
   };
 
@@ -244,7 +261,6 @@ export default function Page() {
         invoiceNo,
         status: "CANCELLED",
         cancelReason: reason,
-        preserve: true,
       }),
     });
 
@@ -259,7 +275,6 @@ export default function Page() {
 
     setInvoiceNo(data.nextInvoiceNo);
     setCreatedAt(new Date().toLocaleString());
-    setEditedAt("");
     setSelectedInvoiceIndex("");
     setIsReadOnly(false);
 
@@ -276,8 +291,8 @@ export default function Page() {
 
   /* ================= UI ================= */
   return (
-    <div className="bg-gray-300 min-h-screen p-4">
-      {/* PRINT HEADER (REPEATS EVERY PAGE VIA CSS) */}
+    <div className=" min-h-screen p-4">
+      {/* PRINT HEADER */}
       <div className="print-meta">
         <span>Invoice No: {invoiceNo}</span>
         <span>Date: {createdAt}</span>
@@ -288,7 +303,7 @@ export default function Page() {
         <div className="cancelled print:block hidden">CANCELLED</div>
       )}
 
-      <div className="print-page mx-auto bg-white border-2 border-black p-3">
+      <div className="print-page mx-auto border-2 border-black p-3">
         {/* OLD INVOICE */}
         <div className="flex gap-3 my-2 print:hidden">
           <select
@@ -308,7 +323,7 @@ export default function Page() {
             <>
               <button
                 onClick={enableEditOld}
-                className="bg-orange-600 text-white px-4 py-1"
+                className=" text-white px-4 py-1"
               >
                 Edit
               </button>

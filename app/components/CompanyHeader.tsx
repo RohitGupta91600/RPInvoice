@@ -1,26 +1,34 @@
+import Image from "next/image"
+
 type Props = {
-  gstEnabled: boolean;
-};
+  gstEnabled: boolean
+}
 
 export default function CompanyHeader({ gstEnabled }: Props) {
-  const COMPANY = {
-    name: "R P Gupta Hall Mark Shop & Bartan Bhandar",
-    address: "Nagina Shah Market, Station Road, Mashrak, Saran, 841417",
-    phone: "9931864811",
-    email: "rpguptajewellers@gmail.com",
-    gstin: "07ABCDE1234F",
-  };
-
   return (
-    <div className="border-b border-black px-2 py-1 text-[12px] leading-[14px] print:text-[11px] print:leading-[13px]">
-      <div className="font-bold text-[15px] print:text-[14px] leading-[16px]">
-        {COMPANY.name}
-      </div>
-      <div>{COMPANY.address}</div>
-      <div>Phone: {COMPANY.phone}</div>
-      <p>Email: {COMPANY.email}</p>
+    <div className="border-b-2 border-black px-3 py-3 print:py-2">
+      <div className="grid grid-cols-[80px_1fr_80px] items-center">
 
-      {gstEnabled && <div>GSTIN: {COMPANY.gstin}</div>}
+        <div className="flex justify-center">
+          <Image src="/assets/watermark916.png" alt="BIS 916" width={64} height={64} className="print:w-full print:h-full" priority />
+        </div>
+
+        <div className="text-center leading-tight">
+          <div className="text-[36px] font-extrabold tracking-[6px] print:text-[30px]">R. P. GUPTA</div>
+          <div className="text-[18px] font-bold mt-1 print:text-[16px]">Hallmark Shop & Bartan Bhandar</div>
+          <div className="text-[14px] mt-1 print:text-[12px]">Nagina Shah Market, Station Road, Mashrak, Saran</div>
+          <div className="flex justify-center gap-6 text-[14px] mt-1 print:text-[12px]">
+            <span>📞 9931864811</span>
+            <span>✉ rpguptajewellers@gmail.com</span>
+          </div>
+          {gstEnabled && <div className="text-[13px] mt-1 print:text-[11px]"><strong>GSTIN:</strong> 07ABCDE1234F</div>}
+        </div>
+
+        <div className="flex justify-center">
+          <Image src="/assets/watermark750.png" alt="BIS 750" width={64} height={64} className="print:w-full print:h-full" priority />
+        </div>
+
+      </div>
     </div>
-  );
+  )
 }

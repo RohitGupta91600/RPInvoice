@@ -15,11 +15,11 @@ body {
   margin: 0;
   padding: 0;
   color: #111;
-  background: #fff;
+  background: #ffffff;
 }
 
 /* ================================================= */
-/* ================= PRINT (A4 FINAL) =============== */
+/* ================= PRINT (FINAL) ================= */
 /* ================================================= */
 
 @media print {
@@ -27,19 +27,58 @@ body {
   /* ================= PAGE SETUP ================= */
   @page {
     size: A4;
-    margin: 18mm 10mm 18mm 10mm;
+    margin: 18mm 10mm;
   }
 
   html,
   body {
     width: 210mm;
     background: white !important;
-    color: black !important;
-    overflow: visible !important;
   }
 
   /* ================================================= */
-  /* ===== INVOICE NO + DATE (REPEAT EVERY PAGE) ===== */
+  /* ============ TEXT COLOR → BLUE ================= */
+  /* ================================================= */
+  body,
+  body *:not(img) {
+    color: #0b3a82 !important; /* 🔵 professional blue */
+    background: transparent !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ================================================= */
+  /* ================= WATERMARK ===================== */
+  /* ================================================= */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("/assets/watermark.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 70%;
+    opacity: 0.08; /* watermark strength */
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* 🔥 IMPORTANT: watermark image COLOR SAFE */
+  img {
+    filter: none !important;
+  }
+
+  /* ================================================= */
+  /* ============== MAIN CONTENT ===================== */
+  /* ================================================= */
+  .print-page {
+    position: relative;
+    z-index: 1;
+    background: transparent !important;
+  }
+
+  /* ================================================= */
+  /* ===== INVOICE NO + DATE (ALL PAGES) ============= */
   /* ================================================= */
   .print-meta {
     position: fixed;
@@ -48,20 +87,10 @@ body {
     right: 10mm;
     display: flex;
     justify-content: space-between;
-    align-items: center;
     font-size: 11px;
     font-weight: bold;
     background: transparent;
     z-index: 9999;
-    .print-page{padding-top:0!important};
-
-  }
-
-  /* ================================================= */
-  /* ============ MAIN CONTENT OFFSET ================= */
-  /* ================================================= */
-  .print-page {
-    padding-top: 1mm; /* header ke liye jagah */
   }
 
   /* ================================================= */
@@ -73,7 +102,7 @@ body {
   }
 
   /* ================================================= */
-  /* ============ FORM ELEMENTS → TEXT =============== */
+  /* ============ INPUT → TEXT ======================= */
   /* ================================================= */
   input,
   select,
@@ -84,11 +113,7 @@ body {
     margin: 0 !important;
     box-shadow: none !important;
     appearance: none !important;
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    color: black !important;
-    font-size: inherit !important;
-    overflow: hidden !important;
+    color: #0b3a82 !important;
   }
 
   ::placeholder {
@@ -96,12 +121,12 @@ body {
   }
 
   /* ================================================= */
-  /* ================= TABLE FIX ==================== */
+  /* ================= TABLE ========================= */
   /* ================================================= */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
-    table-layout: fixed !important; /* 🔥 MOST IMPORTANT */
+    table-layout: fixed !important;
   }
 
   thead {
@@ -115,43 +140,18 @@ body {
 
   th,
   td {
-    border: 1px solid black !important;
+    border: 1px solid #0b3a82 !important;
     padding: 4px !important;
     font-size: 11px !important;
-    word-break: break-word !important;
-    white-space: normal !important;
     text-align: center !important;
+    word-break: break-word !important;
   }
 
-  /* ===== AMOUNT / TOTAL NEVER CUT ===== */
   th:last-child,
   td:last-child {
-    white-space: nowrap !important;
     text-align: right !important;
-  }
-
-  /* ================================================= */
-  /* ============ REMOVE HORIZONTAL SCROLL ============ */
-  /* ================================================= */
-  * {
-    overflow-x: hidden !important;
-  }
-
-  /* ================================================= */
-  /* ============ PAYMENT / TOTAL BLOCK =============== */
-  /* ================================================= */
-  .no-break {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* ================================================= */
-  /* ================= REMARK PRINT ================== */
-  /* ================================================= */
-  .remark-print {
-    font-size: 11px;
-    margin-top: 6px;
-    white-space: pre-wrap;
+    white-space: nowrap !important;
+    font-weight: bold !important;
   }
 
   /* ================================================= */
@@ -160,13 +160,14 @@ body {
   .bill-footer {
     margin-top: 10px;
     padding-top: 6px;
-    border-top: 1px solid black;
+    border-top: 1px solid #0b3a82;
     font-size: 11px;
     text-align: center;
+    font-weight: bold;
   }
 
   /* ================================================= */
-  /* ================= CANCEL WATERMARK =============== */
+  /* ================= CANCEL STAMP ================== */
   /* ================================================= */
   .cancelled {
     position: fixed;
@@ -176,10 +177,17 @@ body {
     text-align: center;
     font-size: 64px;
     font-weight: bold;
-    color: rgba(200, 0, 0, 0.25);
+    color: rgba(11, 58, 130, 0.25); /* blue cancel */
     transform: rotate(-25deg);
-    z-index: 99999;
     pointer-events: none;
+    z-index: 99999;
+  }
+
+  /* ================================================= */
+  /* ================= SAFETY ======================== */
+  /* ================================================= */
+  * {
+    overflow: visible !important;
   }
 }
 
