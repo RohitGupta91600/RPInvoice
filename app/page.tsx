@@ -55,7 +55,6 @@ export default function Page() {
   const loadOldInvoice = (i: number) => {
     const inv = savedInvoices[i]
     if (!inv) return
-
     setSelectedInvoiceIndex(i)
     setInvoiceNo(inv.invoiceNo)
     setCreatedAt(new Date(inv.createdAt).toLocaleString())
@@ -72,42 +71,26 @@ export default function Page() {
 
   const updateItem = (i: number, field: keyof PurchaseItem, value: any) => {
     if (!canEdit) return
-    setItems(prev =>
-      prev.map((item, idx) => {
-        if (idx !== i) return item
-        if (field === "metal") {
-          if (value === "Gold") return { ...item, metal: "Gold", purityType: "22k", purityValue: "22k" }
-          return { ...item, metal: "Silver", purityType: "", purityValue: "" }
-        }
-        if (field === "purityType") return { ...item, purityType: value, purityValue: value === "custom" ? "" : value }
-        return { ...item, [field]: value }
-      })
-    )
+    setItems(p => p.map((it, idx) => idx !== i ? it : field === "metal"
+      ? value === "Gold" ? { ...it, metal: "Gold", purityType: "22k", purityValue: "22k" } : { ...it, metal: "Silver", purityType: "", purityValue: "" }
+      : field === "purityType" ? { ...it, purityType: value, purityValue: value === "custom" ? "" : value }
+      : { ...it, [field]: value }))
   }
 
   const purchaseTotal = items.reduce((s, i) => {
-    const base = i.weight * i.rate
-    return s + base + (base * i.makingPercent) / 100
+    const b = i.weight * i.rate
+    return s + b + (b * i.makingPercent) / 100
   }, 0)
 
   const gstAmount = gstEnabled ? purchaseTotal * 0.03 : 0
   const purchaseFinal = purchaseTotal + gstAmount
-
-  const exchangeTotal = exchangeItems.reduce((s, e) => {
-    const purity = Number(e.purity) || 0
-    return s + e.weight * ((e.rate * purity) / 100)
-  }, 0)
-
+  const exchangeTotal = exchangeItems.reduce((s, e) => s + e.weight * ((e.rate * (Number(e.purity) || 0)) / 100), 0)
   const finalPayable = purchaseFinal - exchangeTotal
   const dueAmount = Math.max(finalPayable - paidAmount, 0)
 
   const saveInvoice = async () => {
     if (!canEdit) return
-    await fetch("/api/invoices", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceNo, customer, gstEnabled, items, exchangeItems, paidAmount, dueDateTime, remark, status, cancelReason })
-    })
+    await fetch("/api/invoices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoiceNo, customer, gstEnabled, items, exchangeItems, paidAmount, dueDateTime, remark, status, cancelReason }) })
   }
 
   const handlePrint = async () => {
@@ -115,33 +98,24 @@ export default function Page() {
     isPrintingRef.current = true
     await saveInvoice()
     window.print()
-    setTimeout(() => (isPrintingRef.current = false), 800)
+    setTimeout(() => isPrintingRef.current = false, 800)
   }
 
   const cancelInvoice = async () => {
     const reason = prompt("Cancel reason?")
     if (!reason) return
-    await fetch("/api/invoices", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceNo, status: "CANCELLED", cancelReason: reason })
-    })
+    await fetch("/api/invoices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoiceNo, status: "CANCELLED", cancelReason: reason }) })
     setStatus("CANCELLED")
     setCancelReason(reason)
   }
 
-  const createNewBill = () => location.reload()
-
   return (
     <div className="p-4">
 
-      <div className="print-meta print:block hidden">
-        <span>Invoice No: {invoiceNo}</span>
-        <span>Date: {createdAt}</span>
-      </div>
-
       {status === "CANCELLED" && (
-        <div className="cancelled print:block hidden">CANCELLED</div>
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-[9999] print:flex">
+          <div className="text-[140px] rotate-[-25deg] opacity-20 font-black text-red-600 tracking-widest">CANCELLED</div>
+        </div>
       )}
 
       <div className="print-page border-2 border-black p-3">
@@ -152,9 +126,7 @@ export default function Page() {
         </select>
 
         {selectedInvoiceIndex !== "" && status !== "CANCELLED" && (
-          <button onClick={cancelInvoice} className="bg-red-700 text-white px-4 py-1 print:hidden ml-2">
-            Cancel Invoice
-          </button>
+          <button onClick={cancelInvoice} className="bg-red-700 text-white px-4 py-1 print:hidden ml-2">Cancel Invoice</button>
         )}
 
         <CompanyHeader gstEnabled={gstEnabled} />
@@ -162,14 +134,13 @@ export default function Page() {
         <CustomerForm customer={customer} setCustomer={setCustomer} isReadOnly={!canEdit} />
         <PurchaseTable items={items} addItem={() => canEdit && setItems([...items, emptyItem])} updateItem={updateItem} deleteItem={i => canEdit && setItems(items.filter((_, idx) => idx !== i))} />
         <PurchaseTotal purchaseTotal={purchaseTotal} gstEnabled={gstEnabled} gstAmount={gstAmount} purchaseFinal={purchaseFinal} />
-        <ExchangeTable exchangeItems={exchangeItems} addExchange={() => canEdit && setExchangeItems([...exchangeItems, { description: "", metal: "Gold", purity: "", weight: 0, rate: 0 }])} updateExchange={(i, f, v) => canEdit && setExchangeItems(prev => prev.map((e, idx) => idx === i ? { ...e, [f]: v } : e))} deleteExchange={i => canEdit && setExchangeItems(exchangeItems.filter((_, idx) => idx !== i))} />
+        <ExchangeTable exchangeItems={exchangeItems} addExchange={() => canEdit && setExchangeItems([...exchangeItems, { description: "", metal: "Gold", purity: "", weight: 0, rate: 0 }])} updateExchange={(i, f, v) => canEdit && setExchangeItems(p => p.map((e, idx) => idx === i ? { ...e, [f]: v } : e))} deleteExchange={i => canEdit && setExchangeItems(exchangeItems.filter((_, idx) => idx !== i))} />
         <FinalAmount finalPayable={finalPayable} />
         <PaymentSection paidAmount={paidAmount} setPaidAmount={setPaidAmount} dueAmount={dueAmount} dueDateTime={dueDateTime} setDueDateTime={setDueDateTime} remark={remark} setRemark={setRemark} isReadOnly={!canEdit} />
         <BillFooter />
 
         <div className="flex gap-4 mt-4 print:hidden">
           {canEdit && <button onClick={handlePrint} className="bg-blue-600 text-white px-6 py-1">Print Bill</button>}
-          <button onClick={createNewBill} className="bg-gray-600 text-white px-6 py-1">Create New Bill</button>
         </div>
 
       </div>

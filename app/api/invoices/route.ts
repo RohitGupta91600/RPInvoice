@@ -9,7 +9,9 @@ export async function GET() {
 
     const invoices = await col.find({}).sort({ invoiceNo: 1 }).toArray()
 
-    const lastNo = invoices.length > 0 ? invoices[invoices.length - 1].invoiceNo : "000000"
+    const lastNo =
+      invoices.length > 0 ? invoices[invoices.length - 1].invoiceNo : "000000"
+
     const nextInvoiceNo = String(Number(lastNo) + 1).padStart(6, "0")
 
     return NextResponse.json({ invoices, nextInvoiceNo })
@@ -23,27 +25,39 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    if (!body.invoiceNo) return NextResponse.json({ error: "Invoice number missing" }, { status: 400 })
+    if (!body.invoiceNo)
+      return NextResponse.json({ error: "Invoice number missing" }, { status: 400 })
 
     await client.connect()
     const col = client.db("invoiceDB").collection("invoices")
+
     const existing = await col.findOne({ invoiceNo: body.invoiceNo })
 
-    /* ---------- CANCEL ---------- */
+    /* ================= CANCEL ================= */
     if (body.status === "CANCELLED") {
       await col.updateOne(
         { invoiceNo: body.invoiceNo },
-        { $set: { status: "CANCELLED", cancelReason: body.cancelReason || "", cancelledAt: new Date() } }
+        {
+          $set: {
+            status: "CANCELLED",
+            cancelReason: body.cancelReason || "",
+            cancelledAt: new Date(),
+            editedAt: new Date()
+          }
+        }
       )
       return NextResponse.json({ cancelled: true })
     }
 
-    /* ---------- HARD LOCK ---------- */
+    /* ================= HARD LOCK ================= */
     if (existing && existing.status === "CANCELLED") {
-      return NextResponse.json({ error: "Invoice cancelled forever" }, { status: 403 })
+      return NextResponse.json(
+        { error: "Cancelled invoice cannot be edited" },
+        { status: 403 }
+      )
     }
 
-    /* ---------- SERVER SIDE TOTAL ---------- */
+    /* ================= SERVER TOTAL ================= */
     const purchaseTotal = (body.items || []).reduce((s: number, i: any) => {
       const base = i.weight * i.rate
       return s + base + (base * i.makingPercent) / 100
@@ -56,7 +70,7 @@ export async function POST(req: Request) {
 
     const finalPayable = purchaseTotal - exchangeTotal
 
-    /* ---------- UPSERT SAVE ---------- */
+    /* ================= UPSERT SAVE ================= */
     await col.updateOne(
       { invoiceNo: body.invoiceNo },
       {
