@@ -244,10 +244,12 @@ export default function Page() {
         invoiceNo,
         status: "CANCELLED",
         cancelReason: reason,
+        preserve: true,
       }),
     });
 
-    location.reload();
+    setStatus("CANCELLED");
+    setCancelReason(reason);
   };
 
   /* ================= NEW BILL ================= */
