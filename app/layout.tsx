@@ -7,12 +7,15 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "RP Invoice",
-  description: "Jewellery Billing",
+  description: "Jewellery Billing"
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <div id="print-watermark"></div>
         {children}

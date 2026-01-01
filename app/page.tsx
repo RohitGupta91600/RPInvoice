@@ -71,10 +71,15 @@ export default function Page() {
 
   const updateItem = (i: number, field: keyof PurchaseItem, value: any) => {
     if (!canEdit) return
-    setItems(p => p.map((it, idx) => idx !== i ? it : field === "metal"
-      ? value === "Gold" ? { ...it, metal: "Gold", purityType: "22k", purityValue: "22k" } : { ...it, metal: "Silver", purityType: "", purityValue: "" }
-      : field === "purityType" ? { ...it, purityType: value, purityValue: value === "custom" ? "" : value }
-      : { ...it, [field]: value }))
+    setItems(p => p.map((it, idx) => idx !== i ? it :
+      field === "metal"
+        ? value === "Gold"
+          ? { ...it, metal: "Gold", purityType: "22k", purityValue: "22k" }
+          : { ...it, metal: "Silver", purityType: "", purityValue: "" }
+        : field === "purityType"
+          ? { ...it, purityType: value, purityValue: value === "custom" ? "" : value }
+        : { ...it, [field]: value }
+    ))
   }
 
   const purchaseTotal = items.reduce((s, i) => {
@@ -88,30 +93,62 @@ export default function Page() {
   const finalPayable = purchaseFinal - exchangeTotal
   const dueAmount = Math.max(finalPayable - paidAmount, 0)
 
-  const saveInvoice = async () => {
-    if (!canEdit) return
-    await fetch("/api/invoices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoiceNo, customer, gstEnabled, items, exchangeItems, paidAmount, dueDateTime, remark, status, cancelReason }) })
-  }
-
   const handlePrint = async () => {
     if (isPrintingRef.current) return
     isPrintingRef.current = true
-    await saveInvoice()
+
+    if (selectedInvoiceIndex !== "") {
+      window.print()
+      isPrintingRef.current = false
+      return
+    }
+
+    const res = await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoiceNo,
+        customer,
+        gstEnabled,
+        items,
+        exchangeItems,
+        paidAmount,
+        dueDateTime,
+        remark,
+        status,
+        cancelReason
+      })
+    })
+
+    const saved = await res.json()
+
+    await fetch("/api/send-bill", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoiceId: saved.id,
+        customerEmail: customer.email || ""
+      })
+    })
+
     window.print()
-    setTimeout(() => isPrintingRef.current = false, 800)
+    setTimeout(() => isPrintingRef.current = false, 1000)
   }
 
   const cancelInvoice = async () => {
     const reason = prompt("Cancel reason?")
     if (!reason) return
-    await fetch("/api/invoices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoiceNo, status: "CANCELLED", cancelReason: reason }) })
+    await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoiceNo, status: "CANCELLED", cancelReason: reason })
+    })
     setStatus("CANCELLED")
     setCancelReason(reason)
   }
 
   return (
     <div className="p-4">
-
       {status === "CANCELLED" && (
         <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-[9999] print:flex">
           <div className="text-[140px] rotate-[-25deg] opacity-20 font-black text-red-600 tracking-widest">CANCELLED</div>
@@ -119,6 +156,10 @@ export default function Page() {
       )}
 
       <div className="print-page border-2 border-black p-3">
+        <div className="print-meta">
+          <span>Invoice No: {invoiceNo}</span>
+          <span>{createdAt}</span>
+        </div>
 
         <select className="border p-1 mb-2 print:hidden" onChange={e => loadOldInvoice(Number(e.target.value))}>
           <option value="">-- Select Old Invoice --</option>
@@ -139,10 +180,10 @@ export default function Page() {
         <PaymentSection paidAmount={paidAmount} setPaidAmount={setPaidAmount} dueAmount={dueAmount} dueDateTime={dueDateTime} setDueDateTime={setDueDateTime} remark={remark} setRemark={setRemark} isReadOnly={!canEdit} />
         <BillFooter />
 
-        <div className="flex gap-4 mt-4 print:hidden">
-          {canEdit && <button onClick={handlePrint} className="bg-blue-600 text-white px-6 py-1">Print Bill</button>}
+        <div className="flex justify-center gap-6 mt-6 print:hidden">
+          <button onClick={() => window.location.reload()} className="px-8 py-2 bg-gray-800 text-white rounded-md shadow active:scale-95 transition">New Invoice</button>
+          <button onClick={handlePrint} className="px-10 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-md shadow active:scale-95 transition">Print</button>
         </div>
-
       </div>
     </div>
   )

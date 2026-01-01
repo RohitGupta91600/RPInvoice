@@ -31,9 +31,7 @@ export async function POST(req: Request) {
     await client.connect()
     const col = client.db("invoiceDB").collection("invoices")
 
-    const existing = await col.findOne({ invoiceNo: body.invoiceNo })
-
-    /* ================= CANCEL ================= */
+    /* ===== CANCEL ===== */
     if (body.status === "CANCELLED") {
       await col.updateOne(
         { invoiceNo: body.invoiceNo },
@@ -49,15 +47,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ cancelled: true })
     }
 
-    /* ================= HARD LOCK ================= */
-    if (existing && existing.status === "CANCELLED") {
-      return NextResponse.json(
-        { error: "Cancelled invoice cannot be edited" },
-        { status: 403 }
-      )
-    }
-
-    /* ================= SERVER TOTAL ================= */
     const purchaseTotal = (body.items || []).reduce((s: number, i: any) => {
       const base = i.weight * i.rate
       return s + base + (base * i.makingPercent) / 100
@@ -70,32 +59,47 @@ export async function POST(req: Request) {
 
     const finalPayable = purchaseTotal - exchangeTotal
 
-    /* ================= UPSERT SAVE ================= */
-    await col.updateOne(
-      { invoiceNo: body.invoiceNo },
-      {
-        $set: {
-          customer: body.customer,
-          gstEnabled: body.gstEnabled,
-          items: body.items,
-          exchangeItems: body.exchangeItems,
-          paidAmount: body.paidAmount,
-          dueDateTime: body.dueDateTime,
-          remark: body.remark || "",
-          finalPayable,
-          status: "ACTIVE",
-          editedAt: new Date()
-        },
-        $setOnInsert: {
-          createdAt: new Date(),
-          cancelReason: null,
-          cancelledAt: null
-        }
-      },
-      { upsert: true }
-    )
+    const exists = await col.findOne({ invoiceNo: body.invoiceNo })
 
-    return NextResponse.json({ saved: true })
+    /* ===== UPDATE ===== */
+    if (exists) {
+      await col.updateOne(
+        { invoiceNo: body.invoiceNo },
+        {
+          $set: {
+            customer: body.customer,
+            gstEnabled: body.gstEnabled,
+            items: body.items,
+            exchangeItems: body.exchangeItems,
+            paidAmount: body.paidAmount,
+            dueDateTime: body.dueDateTime,
+            remark: body.remark || "",
+            finalPayable,
+            status: "ACTIVE",
+            editedAt: new Date()
+          }
+        }
+      )
+      return NextResponse.json({ id: exists._id.toString() })
+    }
+
+    /* ===== INSERT ===== */
+    const insert = await col.insertOne({
+      invoiceNo: body.invoiceNo,
+      customer: body.customer,
+      gstEnabled: body.gstEnabled,
+      items: body.items,
+      exchangeItems: body.exchangeItems,
+      paidAmount: body.paidAmount,
+      dueDateTime: body.dueDateTime,
+      remark: body.remark || "",
+      finalPayable,
+      status: "ACTIVE",
+      createdAt: new Date(),
+      editedAt: new Date()
+    })
+
+    return NextResponse.json({ id: insert.insertedId.toString() })
   } catch (err) {
     console.error("POST /api/invoices:", err)
     return NextResponse.json({ error: "Failed to save invoice" }, { status: 500 })
