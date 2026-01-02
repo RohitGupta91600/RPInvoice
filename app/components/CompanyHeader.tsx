@@ -19,9 +19,9 @@ export default function CompanyHeader({ gstEnabled }: Props) {
           <div className="text-[14px] mt-1 print:text-[12px]">Nagina Shah Market, Station Road, Mashrak, Saran</div>
           <div className="flex justify-center gap-6 text-[14px] mt-1 print:text-[12px]">
             <span>📞 9931864811</span>
-            <span>✉ rpguptajewellers@gmail.com</span>
+            <span>✉ rpguptajwellers@gmail.com</span>
           </div>
-          {gstEnabled && <div className="text-[13px] mt-1 print:text-[11px]"><strong>GSTIN:</strong> 07ABCDE1234F</div>}
+          {gstEnabled && <div className="text-[13px] mt-1 print:text-[11px]"><strong>GSTIN:</strong>10BTIPP7400BIZB</div>}
         </div>
 
         <div className="flex justify-center">
