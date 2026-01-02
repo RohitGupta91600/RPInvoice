@@ -27,9 +27,9 @@ export default function ExchangeTable({
         Old Gold / Silver Exchange
       </p>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-[700px] w-full border border-black">
-          <thead className="bg-blue-900 text-white">
+        <div className="overflow-x-auto print:overflow-visible">
+        <table className="w-full border border-black min-w-[800px] print:min-w-0 print:text-xs">
+          <thead className="bg-blue-900 text-white print:bg-transparent print:text-black">
             <tr>
               <th className="border p-1">Sr</th>
               <th className="border p-1">Description</th>

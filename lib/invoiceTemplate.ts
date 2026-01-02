@@ -21,6 +21,7 @@ export default function invoiceTemplate(inv: any) {
 
 <h2 style="text-align:center;margin:0">R. P. GUPTA</h2>
 <p style="text-align:center;margin:2px 0">Hallmark Shop & Bartan Bhandar</p>
+<p style="text-align:center;margin:2px 0">Mobile: 9931864811 | Email: rpguptainvoice@gmail.com</p>
 <hr>
 
 <b>Invoice No:</b> ${inv.invoiceNo}<br>
@@ -69,6 +70,9 @@ ${(inv.exchangeItems||[]).map((e:any)=>`
 <h3>Final Payable: ₹${finalPayable.toFixed(2)}</h3>
 <p>Paid: ₹${(inv.paidAmount||0).toFixed(2)}</p>
 <p>Due: ₹${due.toFixed(2)}</p>
+
+<b>Due Date / Time:</b> ${inv.dueDateTime || ""}<br>
+<b>Remark / Note:</b> ${inv.remark || ""}<br><br>
 
 ${inv.status==="CANCELLED" ? `<h1 style="color:red;text-align:center">CANCELLED</h1>` : ``}
 

@@ -32,6 +32,7 @@ export default function Page() {
   const [createdAt, setCreatedAt] = useState("")
   const [status, setStatus] = useState<"ACTIVE" | "CANCELLED">("ACTIVE")
   const [cancelReason, setCancelReason] = useState("")
+  const [cancelAt, setCancelAt] = useState("")
   const [customer, setCustomer] = useState<Customer>(emptyCustomer)
   const [savedInvoices, setSavedInvoices] = useState<any[]>([])
   const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<number | "">("")
@@ -60,6 +61,7 @@ export default function Page() {
     setCreatedAt(new Date(inv.createdAt).toLocaleString())
     setStatus(inv.status || "ACTIVE")
     setCancelReason(inv.cancelReason || "")
+    setCancelAt(inv.cancelAt ? new Date(inv.cancelAt).toLocaleString() : "")
     setCustomer(inv.customer || emptyCustomer)
     setGstEnabled(inv.gstEnabled)
     setItems(inv.items || [])
@@ -113,10 +115,11 @@ export default function Page() {
         items,
         exchangeItems,
         paidAmount,
-        dueDateTime,
         remark,
+        dueDateTime,
         status,
-        cancelReason
+        cancelReason,
+        cancelAt
       })
     })
 
@@ -138,24 +141,32 @@ export default function Page() {
   const cancelInvoice = async () => {
     const reason = prompt("Cancel reason?")
     if (!reason) return
+    const now = new Date().toISOString()
     await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceNo, status: "CANCELLED", cancelReason: reason })
+      body: JSON.stringify({ invoiceNo, status: "CANCELLED", cancelReason: reason, cancelAt: now })
     })
     setStatus("CANCELLED")
     setCancelReason(reason)
+    setCancelAt(new Date(now).toLocaleString())
   }
 
   return (
     <div className="p-4">
-      {status === "CANCELLED" && (
-        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-[9999] print:flex">
-          <div className="text-[140px] rotate-[-25deg] opacity-20 font-black text-red-600 tracking-widest">CANCELLED</div>
-        </div>
-      )}
-
       <div className="print-page border-2 border-black p-3">
+
+        {status === "CANCELLED" && (
+          <div className="cancel-watermark">
+            <div className="cancel-big">CANCELLED</div>
+            <div className="cancel-small">
+              Cancelled On: {cancelAt || new Date().toLocaleString()}
+              <br />
+              Reason: {cancelReason}
+            </div>
+          </div>
+        )}
+
         <div className="print-meta">
           <span>Invoice No: {invoiceNo}</span>
           <span>{createdAt}</span>
@@ -181,9 +192,10 @@ export default function Page() {
         <BillFooter />
 
         <div className="flex justify-center gap-6 mt-6 print:hidden">
-          <button onClick={() => window.location.reload()} className="px-8 py-2 bg-gray-800 text-white rounded-md shadow active:scale-95 transition">New Invoice</button>
-          <button onClick={handlePrint} className="px-10 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-md shadow active:scale-95 transition">Print</button>
+          <button onClick={() => window.location.reload()} className="px-8 py-2 bg-gray-800 text-white rounded-md shadow">New Invoice</button>
+          <button onClick={handlePrint} className="px-10 py-2 bg-blue-700 text-white rounded-md shadow">Print</button>
         </div>
+
       </div>
     </div>
   )
