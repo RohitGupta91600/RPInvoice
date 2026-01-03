@@ -15,14 +15,22 @@ import BillFooter from "./components/BillFooter";
 
 import { PurchaseItem, ExchangeItem } from "./types";
 
-type Customer = { name: string; phone: string; address: string; email: string };
+type Customer = {
+  name: string;
+  phone: string;
+  address: string;
+  email: string;
+};
 
 export default function Page() {
   const router = useRouter();
   const isPrintingRef = useRef(false);
 
+  // 🔐 login check
   useEffect(() => {
-    if (!document.cookie.includes("logged_in=true")) router.replace("/login");
+    if (!document.cookie.includes("logged_in=true")) {
+      router.replace("/login");
+    }
   }, []);
 
   const emptyCustomer: Customer = {
@@ -31,6 +39,7 @@ export default function Page() {
     address: "",
     email: "",
   };
+
   const emptyItem: PurchaseItem = {
     name: "",
     metal: "Gold",
@@ -47,10 +56,12 @@ export default function Page() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelAt, setCancelAt] = useState("");
   const [customer, setCustomer] = useState<Customer>(emptyCustomer);
+
   const [savedInvoices, setSavedInvoices] = useState<any[]>([]);
-  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<number | "">(
-    ""
-  );
+  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<
+    number | null
+  >(null);
+
   const [gstEnabled, setGstEnabled] = useState(true);
   const [items, setItems] = useState<PurchaseItem[]>([emptyItem]);
   const [exchangeItems, setExchangeItems] = useState<ExchangeItem[]>([]);
@@ -58,8 +69,9 @@ export default function Page() {
   const [dueDateTime, setDueDateTime] = useState("");
   const [remark, setRemark] = useState("");
 
-  const canEdit = selectedInvoiceIndex === "" && status !== "CANCELLED";
+  const canEdit = selectedInvoiceIndex === null && status !== "CANCELLED";
 
+  // 📥 load invoices
   useEffect(() => {
     fetch("/api/invoices")
       .then((r) => r.json())
@@ -70,9 +82,11 @@ export default function Page() {
       });
   }, []);
 
+  // 📄 load old invoice
   const loadOldInvoice = (i: number) => {
     const inv = savedInvoices[i];
     if (!inv) return;
+
     setSelectedInvoiceIndex(i);
     setInvoiceNo(inv.invoiceNo);
     setCreatedAt(new Date(inv.createdAt).toLocaleString());
@@ -88,8 +102,10 @@ export default function Page() {
     setRemark(inv.remark || "");
   };
 
+  // ✏️ update purchase item
   const updateItem = (i: number, field: keyof PurchaseItem, value: any) => {
     if (!canEdit) return;
+
     setItems((p) =>
       p.map((it, idx) =>
         idx !== i
@@ -109,6 +125,7 @@ export default function Page() {
     );
   };
 
+  // 🧮 calculations
   const purchaseTotal = items.reduce((s, i) => {
     const b = i.weight * i.rate;
     return s + b + (b * i.makingPercent) / 100;
@@ -116,50 +133,79 @@ export default function Page() {
 
   const gstAmount = gstEnabled ? purchaseTotal * 0.03 : 0;
   const purchaseFinal = purchaseTotal + gstAmount;
+
   const exchangeTotal = exchangeItems.reduce(
     (s, e) => s + e.weight * ((e.rate * (Number(e.purity) || 0)) / 100),
     0
   );
+
   const finalPayable = purchaseFinal - exchangeTotal;
   const dueAmount = Math.max(finalPayable - paidAmount, 0);
 
+  // 🖨️ SAVE → MAIL → PRINT (FINAL FIX)
   const handlePrint = async () => {
+    alert("Invoice is ready. Please click OK to proceed to printing.");
+
     if (isPrintingRef.current) return;
     isPrintingRef.current = true;
 
-    if (selectedInvoiceIndex !== "") {
+    try {
+      // 1️⃣ save invoice
+      const saveRes = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceNo,
+          customer,
+          gstEnabled,
+          items,
+          exchangeItems,
+          paidAmount,
+          remark,
+          dueDateTime,
+          status,
+          cancelReason,
+          cancelAt,
+        }),
+      });
+
+      const saveData = await saveRes.json();
+      console.log("SAVE DATA:", saveData);
+
+      // 2️⃣ send mail (no early return anymore)
+      if (saveData.invoiceId) {
+        console.log("CALLING SEND BILL API");
+
+        const mailRes = await fetch("/api/send-bill", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoiceId: saveData.invoiceId,
+            customerEmail: customer.email || null,
+          }),
+        });
+
+        const mailData = await mailRes.json();
+        console.log("MAIL RESPONSE:", mailRes.status, mailData);
+      }
+
+      // 3️⃣ print
       window.print();
-      isPrintingRef.current = false;
-      return;
+    } catch (err) {
+      console.error("PRINT ERROR:", err);
+      alert("Invoice saved but mail failed");
+    } finally {
+      setTimeout(() => (isPrintingRef.current = false), 1000);
     }
-
-    const res = await fetch("/api/invoices", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        invoiceNo,
-        customer,
-        gstEnabled,
-        items,
-        exchangeItems,
-        paidAmount,
-        remark,
-        dueDateTime,
-        status,
-        cancelReason,
-        cancelAt,
-      }),
-    });
-
-    await res.json();
-    window.print();
-    setTimeout(() => (isPrintingRef.current = false), 1000);
   };
 
+  // ❌ cancel invoice
   const cancelInvoice = async () => {
     const reason = prompt("Cancel reason?");
     if (!reason) return;
+
     const now = new Date().toISOString();
+
     await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -170,6 +216,7 @@ export default function Page() {
         cancelAt: now,
       }),
     });
+
     setStatus("CANCELLED");
     setCancelReason(reason);
     setCancelAt(now);
@@ -197,7 +244,11 @@ export default function Page() {
 
         <select
           className="border p-1 mb-2 print:hidden"
-          onChange={(e) => loadOldInvoice(Number(e.target.value))}
+          onChange={(e) =>
+            e.target.value === ""
+              ? setSelectedInvoiceIndex(null)
+              : loadOldInvoice(Number(e.target.value))
+          }
         >
           <option value="">-- Select Old Invoice --</option>
           {savedInvoices.map((i, idx) => (
@@ -207,7 +258,7 @@ export default function Page() {
           ))}
         </select>
 
-        {selectedInvoiceIndex !== "" && status !== "CANCELLED" && (
+        {selectedInvoiceIndex !== null && status !== "CANCELLED" && (
           <button
             onClick={cancelInvoice}
             className="bg-red-700 text-white px-4 py-1 print:hidden ml-2"
@@ -292,7 +343,13 @@ export default function Page() {
             onClick={handlePrint}
             className="px-10 py-2 bg-blue-700 text-white rounded-md shadow"
           >
-            Print
+            Print & Email
+          </button>
+          <button
+            onClick={() => router.push("/due-book")}
+            className="px-8 py-2 bg-green-700 text-white rounded-md shadow"
+          >
+            View Due Book
           </button>
         </div>
       </div>
