@@ -158,3 +158,64 @@ body {
     overflow: visible !important;
   }
 }
+/* ===================================== */
+/* DUE BOOK – READABLE PRINT OVERRIDES */
+/* ===================================== */
+
+@media print {
+
+  /* Bigger & readable text ONLY for Due Book */
+  .due-book-print {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  .due-book-print th {
+    font-size: 11px !important;
+    padding: 6px !important;
+    font-weight: 700 !important;
+  }
+
+  .due-book-print td {
+    font-size: 11px !important;
+    padding: 6px !important;
+    vertical-align: top !important;
+  }
+
+  /* Customer details column wider */
+  .due-book-print td:nth-child(2),
+  .due-book-print th:nth-child(2) {
+    width: 26% !important;
+    text-align: left !important;
+  }
+
+  /* Invoice no narrow */
+  .due-book-print td:nth-child(1),
+  .due-book-print th:nth-child(1) {
+    width: 8% !important;
+  }
+
+  /* Amount columns */
+  .due-book-print td:nth-child(4),
+  .due-book-print td:nth-child(5),
+  .due-book-print td:nth-child(6) {
+    width: 10% !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+    font-weight: 600 !important;
+  }
+
+  /* Dates */
+  .due-book-print td:nth-child(3),
+  .due-book-print td:nth-child(7) {
+    width: 12% !important;
+    white-space: nowrap !important;
+  }
+
+  /* Status */
+  .due-book-print td:nth-child(8) {
+    width: 6% !important;
+    font-weight: 700 !important;
+  }
+
+}
