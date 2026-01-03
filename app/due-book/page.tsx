@@ -31,12 +31,16 @@ function formatDateTime(v?: string) {
   if (!v) return "-";
   const d = new Date(v);
   if (isNaN(d.getTime())) return "-";
-  return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return (
+    d.toLocaleDateString() +
+    " " +
+    d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  );
 }
 
-function statusFromAmounts(received: number, due: number) {
+function statusFromAmounts(received: number, remaining: number) {
   if (received === 0) return { label: "DUE", color: "text-red-600" };
-  if (due === 0) return { label: "PAID", color: "text-green-600" };
+  if (remaining === 0) return { label: "PAID", color: "text-green-600" };
   return { label: "PARTIAL", color: "text-orange-500" };
 }
 
@@ -46,7 +50,7 @@ export default function DueBookPage() {
   const [dues, setDues] = useState<DueEntry[]>([]);
   const [newPayments, setNewPayments] = useState<Record<string, string>>({});
 
-  // filter
+  // filters
   const [filterType, setFilterType] = useState<"all" | "month" | "year">("all");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
@@ -70,7 +74,10 @@ export default function DueBookPage() {
 
     if (filterType === "month" && month) {
       const [y, m] = month.split("-");
-      return date.getFullYear() === Number(y) && date.getMonth() + 1 === Number(m);
+      return (
+        date.getFullYear() === Number(y) &&
+        date.getMonth() + 1 === Number(m)
+      );
     }
 
     if (filterType === "year" && year) {
@@ -171,7 +178,8 @@ export default function DueBookPage() {
           <tr>
             <th className="border p-1 w-[110px]">Invoice</th>
             <th className="border p-1">Customer</th>
-            <th className="border p-1 w-[230px]">Received / Remaining</th>
+            <th className="border p-1 w-[160px]">Due</th>
+            <th className="border p-1 w-[180px]">Received / Remaining</th>
             <th className="border p-1 w-[70px]">Status</th>
           </tr>
         </thead>
@@ -179,7 +187,7 @@ export default function DueBookPage() {
         <tbody>
           {filteredDues.map((d) => {
             const received = d.payments.reduce((s, p) => s + p.amount, 0);
-            const remaining = Math.max(d.totalAmount - received, 0);
+            const remaining = Math.max(d.dueAmount - received, 0);
             const status = statusFromAmounts(received, remaining);
 
             return (
@@ -188,26 +196,43 @@ export default function DueBookPage() {
                 <tr>
                   <td className="border p-1 align-top">
                     <div className="font-bold">{d.invoiceNo}</div>
-                    <div className="text-[10px]">{formatDateTime(d.createdAt)}</div>
+                    <div className="text-[10px]">
+                      {formatDateTime(d.createdAt)}
+                    </div>
                   </td>
 
                   <td className="border p-1 align-top">
                     <div className="font-semibold">{d.customer.name}</div>
                     <div>{d.customer.phone}</div>
                     <div className="text-[10px]">{d.customer.address}</div>
-                    {d.customer.email && <div className="text-[10px]">{d.customer.email}</div>}
+                    {d.customer.email && (
+                      <div className="text-[10px]">{d.customer.email}</div>
+                    )}
                   </td>
 
+                  {/* DUE COLUMN */}
                   <td className="border p-1 align-top">
-                    <div className="border p-1">
-                      <div><b>Due:</b> ₹{d.totalAmount.toFixed(2)}</div>
-                      <div className="text-green-700"><b>Received:</b> ₹{received.toFixed(2)}</div>
-                      <div className="text-red-700"><b>Remaining:</b> ₹{remaining.toFixed(2)}</div>
-                      <div className="text-[10px] mt-1">Due Date: {formatDateTime(d.dueDateTime)}</div>
+                    <div className="text-red-700 font-bold">
+                      ₹{d.dueAmount.toFixed(2)}
+                    </div>
+                    <div className="text-[10px] text-gray-700 mt-1">
+                      Due Date: {formatDateTime(d.dueDateTime)}
                     </div>
                   </td>
 
-                  <td className={`border p-1 text-center font-bold ${status.color}`}>
+                  {/* RECEIVED / REMAINING */}
+                  <td className="border p-1 align-top">
+                    <div className="text-green-700">
+                      <b>Received:</b> ₹{received.toFixed(2)}
+                    </div>
+                    <div className="text-red-700">
+                      <b>Remaining:</b> ₹{remaining.toFixed(2)}
+                    </div>
+                  </td>
+
+                  <td
+                    className={`border p-1 text-center font-bold ${status.color}`}
+                  >
                     {status.label}
                   </td>
                 </tr>
@@ -215,7 +240,7 @@ export default function DueBookPage() {
                 {/* PAYMENTS */}
                 {d.payments.map((p) => (
                   <tr key={p._id}>
-                    <td colSpan={3} className="border p-1 pl-6">
+                    <td colSpan={4} className="border p-1 pl-6">
                       ₹{p.amount} received on {formatDateTime(p.createdAt)}
                     </td>
                     <td className="border p-1 text-center print:hidden">
@@ -231,14 +256,17 @@ export default function DueBookPage() {
 
                 {/* ADD PAYMENT */}
                 <tr className="print:hidden">
-                  <td colSpan={3} className="border p-1">
+                  <td colSpan={4} className="border p-1">
                     <input
                       type="number"
                       placeholder="Amount"
                       className="border px-2 py-1 w-32 text-sm"
                       value={newPayments[d.invoiceNo] ?? ""}
                       onChange={(e) =>
-                        setNewPayments((x) => ({ ...x, [d.invoiceNo]: e.target.value }))
+                        setNewPayments((x) => ({
+                          ...x,
+                          [d.invoiceNo]: e.target.value,
+                        }))
                       }
                     />
                     <button
