@@ -135,11 +135,11 @@ export default function Page() {
   const purchaseFinal = purchaseTotal + gstAmount;
 
   const exchangeTotal = exchangeItems.reduce(
-    (s, e) => s + e.weight * ((e.rate * (Number(e.purity) || 0)) / 100),
+    (s, e) => s + (Number(e.amount) || 0),
     0
   );
 
-  const finalPayable = purchaseFinal - exchangeTotal;
+  const finalPayable = Math.max(purchaseFinal - exchangeTotal, 0);
   const dueAmount = Math.max(finalPayable - paidAmount, 0);
 
   // 🖨️ SAVE → MAIL → PRINT (FINAL FIX)
@@ -225,6 +225,9 @@ export default function Page() {
   return (
     <div className="p-4">
       <div className="print-page border-2 border-black p-3 demonstrated">
+        <div className="print-watermark-layer">
+          <img src="/assets/watermark.png" />
+        </div>
         {status === "CANCELLED" && (
           <div className="cancel-watermark">
             <div className="cancel-big">CANCELLED</div>
@@ -302,9 +305,9 @@ export default function Page() {
               {
                 description: "",
                 metal: "Gold",
-                purity: "",
                 weight: 0,
                 rate: 0,
+                amount: 0,
               },
             ])
           }
@@ -319,6 +322,7 @@ export default function Page() {
             setExchangeItems(exchangeItems.filter((_, idx) => idx !== i))
           }
         />
+
         <FinalAmount finalPayable={finalPayable} />
         <PaymentSection
           paidAmount={paidAmount}

@@ -10,9 +10,9 @@ export type PurchaseItem = {
 
 
 export type ExchangeItem = {
-  description: string;
-  metal: "Gold" | "Silver";
-  purity: string;
-  weight: number;
-  rate: number;
-};
+  description: string
+  metal: "Gold" | "Silver"
+  weight: number
+  rate: number
+  amount: number
+}

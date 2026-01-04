@@ -56,9 +56,7 @@ export default function PurchaseTable({
                       className="border w-full px-1 print:border-0"
                       value={item.name}
                       disabled={!canEdit}
-                      onChange={(e) =>
-                        updateItem(i, "name", e.target.value)
-                      }
+                      onChange={(e) => updateItem(i, "name", e.target.value)}
                     />
                   </td>
 
@@ -68,9 +66,7 @@ export default function PurchaseTable({
                       className="border print:border-0"
                       value={item.metal}
                       disabled={!canEdit}
-                      onChange={(e) =>
-                        updateItem(i, "metal", e.target.value)
-                      }
+                      onChange={(e) => updateItem(i, "metal", e.target.value)}
                     >
                       <option value="Gold">Gold</option>
                       <option value="Silver">Silver</option>
@@ -169,14 +165,10 @@ export default function PurchaseTable({
                       value={item.makingPercent}
                       disabled={!canEdit}
                       onChange={(e) =>
-                        updateItem(
-                          i,
-                          "makingPercent",
-                          Number(e.target.value)
-                        )
+                        updateItem(i, "makingPercent", Number(e.target.value))
                       }
                     >
-                      {Array.from({ length: 28 }, (_, k) => 8 + k).map((p) => (
+                      {Array.from({ length: 51 }, (_, k) => k).map((p) => (
                         <option key={p} value={p}>
                           {p}%
                         </option>

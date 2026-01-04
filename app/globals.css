@@ -13,13 +13,17 @@ body {
   color: #111;
 }
 
+/* SCREEN HIDE WATERMARK */
+.print-watermark-layer{
+display:none;
+}
+
 @media print {
 
  @page {
   size: A4;
   margin: 12mm;
 }
-
 
   html, body {
     background: white !important;
@@ -37,15 +41,25 @@ body {
     -webkit-print-color-adjust: exact !important;
   }
 
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: url("/assets/watermark.png") no-repeat center;
-    background-size: 70%;
-    opacity: 0.15;
-    pointer-events: none;
-    z-index: 0;
+  /* MOBILE + DESKTOP WATERMARK FIX */
+  .print-watermark-layer{
+    display:flex;
+    position:fixed;
+    inset:0;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .print-watermark-layer img{
+    width:70%;
+    opacity:0.12;
+  }
+
+  .print-page{
+    position:relative;
+    z-index:1;
   }
 
   .print-meta {
@@ -158,13 +172,13 @@ body {
     overflow: visible !important;
   }
 }
+
 /* ===================================== */
 /* DUE BOOK – READABLE PRINT OVERRIDES */
 /* ===================================== */
 
 @media print {
 
-  /* Bigger & readable text ONLY for Due Book */
   .due-book-print {
     font-size: 12px !important;
     line-height: 1.35 !important;
@@ -182,20 +196,17 @@ body {
     vertical-align: top !important;
   }
 
-  /* Customer details column wider */
   .due-book-print td:nth-child(2),
   .due-book-print th:nth-child(2) {
     width: 26% !important;
     text-align: left !important;
   }
 
-  /* Invoice no narrow */
   .due-book-print td:nth-child(1),
   .due-book-print th:nth-child(1) {
     width: 8% !important;
   }
 
-  /* Amount columns */
   .due-book-print td:nth-child(4),
   .due-book-print td:nth-child(5),
   .due-book-print td:nth-child(6) {
@@ -205,14 +216,12 @@ body {
     font-weight: 600 !important;
   }
 
-  /* Dates */
   .due-book-print td:nth-child(3),
   .due-book-print td:nth-child(7) {
     width: 12% !important;
     white-space: nowrap !important;
   }
 
-  /* Status */
   .due-book-print td:nth-child(8) {
     width: 6% !important;
     font-weight: 700 !important;
