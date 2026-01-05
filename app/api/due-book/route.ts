@@ -37,14 +37,14 @@ export async function GET() {
         const purchaseFinal = purchaseTotal + gst;
 
         // -----------------------------
-        // 4️⃣ EXCHANGE TOTAL
+        // 4️⃣ EXCHANGE TOTAL (MANUAL FIX)
         // -----------------------------
         const exchangeTotal = (inv.exchangeItems || []).reduce(
           (sum: number, ex: any) => {
             const rate = Number(ex.rate || 0);
             const purity = Number(ex.purity || 0);
             const weight = Number(ex.weight || 0);
-            return sum + weight * ((rate * purity) / 100);
+            return sum + (Number(ex.amount) || 0);
           },
           0
         );
@@ -74,7 +74,6 @@ export async function GET() {
           paidAmount,
           dueAmount,
 
-          // 🧾 Ledger notes only (NO effect on due)
           payments: Array.isArray(inv.payments)
             ? inv.payments
             : [],
@@ -88,7 +87,7 @@ export async function GET() {
         };
       })
       // 🔥 ONLY SHOW PENDING DUES
-      .filter((d) => d.dueAmount > 0);
+      .filter((d) => Number(d.dueAmount) > 0);
 
     return NextResponse.json({ dueBook });
   } catch (error) {

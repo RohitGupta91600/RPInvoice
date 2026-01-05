@@ -79,7 +79,14 @@ export async function POST(req: Request) {
       0
     )
 
-    const finalPayable = Math.max(purchaseTotal - exchangeTotal, 0)
+    const rawFinal = purchaseTotal - exchangeTotal
+
+    const finalPayable =
+      rawFinal >= 0
+        ? Math.round(rawFinal / 100) * 100
+        : -Math.round(Math.abs(rawFinal) / 100) * 100
+
+    body.paidAmount = Number(body.paidAmount || 0)
 
     const exists = await col.findOne({ invoiceNo: body.invoiceNo })
 

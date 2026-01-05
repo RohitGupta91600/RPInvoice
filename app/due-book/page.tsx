@@ -50,24 +50,32 @@ export default function DueBookPage() {
   const [dues, setDues] = useState<DueEntry[]>([]);
   const [newPayments, setNewPayments] = useState<Record<string, string>>({});
 
-  // filters
   const [filterType, setFilterType] = useState<"all" | "month" | "year">("all");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
 
-  /* ================= LOAD ================= */
-
   const loadData = async () => {
     const r = await fetch("/api/due-book");
     const d = await r.json();
-    setDues(d.dueBook || []);
+
+    const raw = (d.dueBook || []) as DueEntry[];
+
+    const clean: DueEntry[] = [];
+    for (const x of raw) {
+      if (Number(x.dueAmount) > 0) {
+        clean.push(x);
+      }
+    }
+
+    setDues(clean);
   };
 
   useEffect(() => {
-    loadData();
+    const run = async () => {
+      await loadData();
+    };
+    run();
   }, []);
-
-  /* ================= FILTER ================= */
 
   const filteredDues = dues.filter((d) => {
     const date = new Date(d.createdAt);
@@ -75,8 +83,7 @@ export default function DueBookPage() {
     if (filterType === "month" && month) {
       const [y, m] = month.split("-");
       return (
-        date.getFullYear() === Number(y) &&
-        date.getMonth() + 1 === Number(m)
+        date.getFullYear() === Number(y) && date.getMonth() + 1 === Number(m)
       );
     }
 
@@ -86,8 +93,6 @@ export default function DueBookPage() {
 
     return true;
   });
-
-  /* ================= ACTIONS ================= */
 
   const addPayment = async (invoiceNo: string) => {
     const amt = newPayments[invoiceNo];
@@ -115,11 +120,8 @@ export default function DueBookPage() {
     loadData();
   };
 
-  /* ================= UI ================= */
-
   return (
     <div className="p-4">
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-3 print:hidden">
         <h1 className="text-xl font-bold">📒 Due Book (Khata)</h1>
 
@@ -162,7 +164,6 @@ export default function DueBookPage() {
         </div>
       </div>
 
-      {/* PRINT TITLE */}
       <div className="hidden print:block text-center mb-2">
         <div className="font-bold text-sm">Due Book Report</div>
         <div className="text-[10px]">
@@ -172,7 +173,6 @@ export default function DueBookPage() {
         </div>
       </div>
 
-      {/* TABLE */}
       <table className="w-full border border-black text-[11px]">
         <thead className="bg-gray-200">
           <tr>
@@ -192,7 +192,6 @@ export default function DueBookPage() {
 
             return (
               <Fragment key={d.invoiceNo}>
-                {/* MAIN ROW */}
                 <tr>
                   <td className="border p-1 align-top">
                     <div className="font-bold">{d.invoiceNo}</div>
@@ -210,7 +209,6 @@ export default function DueBookPage() {
                     )}
                   </td>
 
-                  {/* DUE COLUMN */}
                   <td className="border p-1 align-top">
                     <div className="text-red-700 font-bold">
                       ₹{d.dueAmount.toFixed(2)}
@@ -220,7 +218,6 @@ export default function DueBookPage() {
                     </div>
                   </td>
 
-                  {/* RECEIVED / REMAINING */}
                   <td className="border p-1 align-top">
                     <div className="text-green-700">
                       <b>Received:</b> ₹{received.toFixed(2)}
@@ -237,7 +234,6 @@ export default function DueBookPage() {
                   </td>
                 </tr>
 
-                {/* PAYMENTS */}
                 {d.payments.map((p) => (
                   <tr key={p._id}>
                     <td colSpan={4} className="border p-1 pl-6">
@@ -254,7 +250,6 @@ export default function DueBookPage() {
                   </tr>
                 ))}
 
-                {/* ADD PAYMENT */}
                 <tr className="print:hidden">
                   <td colSpan={4} className="border p-1">
                     <input
