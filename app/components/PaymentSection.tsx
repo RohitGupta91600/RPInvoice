@@ -21,6 +21,17 @@ export default function PaymentSection({
 }: Props) {
   const canEdit = !isReadOnly
 
+  const handlePaidChange = (v: string) => {
+    const n = Number(v || 0)
+
+    if (n > dueAmount + paidAmount) {
+      alert("Paid amount final payable se zyada nahi ho sakta")
+      return
+    }
+
+    setPaidAmount(n)
+  }
+
   return (
     <div className="mt-3 border border-black p-2">
 
@@ -32,7 +43,7 @@ export default function PaymentSection({
           className="border px-1 w-32 text-right print:hidden"
           value={paidAmount === 0 ? "" : paidAmount}
           disabled={!canEdit}
-          onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
+          onChange={(e) => handlePaidChange(e.target.value)}
         />
 
         <span className="hidden print:block">

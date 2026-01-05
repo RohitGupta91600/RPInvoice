@@ -139,8 +139,14 @@ export default function Page() {
     0
   );
 
-  const finalPayable = Math.max(purchaseFinal - exchangeTotal, 0);
-  const dueAmount = Math.max(finalPayable - paidAmount, 0);
+  const rawFinal = purchaseFinal - exchangeTotal;
+
+  const finalPayable =
+    rawFinal >= 0
+      ? Math.round(rawFinal / 100) * 100
+      : -Math.round(Math.abs(rawFinal) / 100) * 100;
+
+const dueAmount = finalPayable > 0 ? Math.max(finalPayable - paidAmount, 0) : 0
 
   // 🖨️ SAVE → MAIL → PRINT (FINAL FIX)
   const handlePrint = async () => {
