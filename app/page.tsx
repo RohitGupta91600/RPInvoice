@@ -24,14 +24,16 @@ type Customer = {
 
 export default function Page() {
   const router = useRouter();
+
   const isPrintingRef = useRef(false);
+  const handlePrintRef = useRef<() => void>(() => {});
 
   // 🔐 login check
   useEffect(() => {
     if (!document.cookie.includes("logged_in=true")) {
       router.replace("/login");
     }
-  }, []);
+  }, [router]);
 
   const emptyCustomer: Customer = {
     name: "",
@@ -58,9 +60,8 @@ export default function Page() {
   const [customer, setCustomer] = useState<Customer>(emptyCustomer);
 
   const [savedInvoices, setSavedInvoices] = useState<any[]>([]);
-  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState<
-    number | null
-  >(null);
+  const [selectedInvoiceIndex, setSelectedInvoiceIndex] =
+    useState<number | null>(null);
 
   const [gstEnabled, setGstEnabled] = useState(true);
   const [items, setItems] = useState<PurchaseItem[]>([emptyItem]);
@@ -146,17 +147,19 @@ export default function Page() {
       ? Math.round(rawFinal / 100) * 100
       : -Math.round(Math.abs(rawFinal) / 100) * 100;
 
-const dueAmount = finalPayable > 0 ? Math.max(finalPayable - paidAmount, 0) : 0
+  const safePaid = Math.min(paidAmount, Math.max(finalPayable, 0));
 
-  // 🖨️ SAVE → MAIL → PRINT (FINAL FIX)
+  const dueAmount =
+    finalPayable > 0 ? Math.max(finalPayable - safePaid, 0) : 0;
+
+  // 🖨️ SAVE → MAIL → PRINT
   const handlePrint = async () => {
-    alert("Invoice is ready. Please click OK to proceed to printing.");
-
     if (isPrintingRef.current) return;
     isPrintingRef.current = true;
 
+    alert("Invoice is ready. Please click OK to proceed to printing.");
+
     try {
-      // 1️⃣ save invoice
       const saveRes = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -176,13 +179,9 @@ const dueAmount = finalPayable > 0 ? Math.max(finalPayable - paidAmount, 0) : 0
       });
 
       const saveData = await saveRes.json();
-      console.log("SAVE DATA:", saveData);
 
-      // 2️⃣ send mail (no early return anymore)
       if (saveData.invoiceId) {
-        console.log("CALLING SEND BILL API");
-
-        const mailRes = await fetch("/api/send-bill", {
+        await fetch("/api/send-bill", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -190,20 +189,36 @@ const dueAmount = finalPayable > 0 ? Math.max(finalPayable - paidAmount, 0) : 0
             customerEmail: customer.email || null,
           }),
         });
-
-        const mailData = await mailRes.json();
-        console.log("MAIL RESPONSE:", mailRes.status, mailData);
       }
 
-      // 3️⃣ print
       window.print();
     } catch (err) {
       console.error("PRINT ERROR:", err);
       alert("Invoice saved but mail failed");
     } finally {
-      setTimeout(() => (isPrintingRef.current = false), 1000);
+      setTimeout(() => {
+        isPrintingRef.current = false;
+      }, 1000);
     }
   };
+
+  // 🔒 always keep latest handlePrint
+  useEffect(() => {
+    handlePrintRef.current = handlePrint;
+  }, [handlePrint]);
+
+  // 🧾 CTRL + P interception (FINAL WORKING)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        handlePrintRef.current();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // ❌ cancel invoice
   const cancelInvoice = async () => {
@@ -234,6 +249,7 @@ const dueAmount = finalPayable > 0 ? Math.max(finalPayable - paidAmount, 0) : 0
         <div className="print-watermark-layer">
           <img src="/assets/watermark.png" />
         </div>
+
         {status === "CANCELLED" && (
           <div className="cancel-watermark">
             <div className="cancel-big">CANCELLED</div>
@@ -329,7 +345,7 @@ const dueAmount = finalPayable > 0 ? Math.max(finalPayable - paidAmount, 0) : 0
           }
         />
 
-        <FinalAmount finalPayable={finalPayable} />
+        <FinalAmount finalPayable={finalPayable} actualTotal={rawFinal} />
         <PaymentSection
           paidAmount={paidAmount}
           setPaidAmount={setPaidAmount}

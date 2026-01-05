@@ -1,23 +1,39 @@
 export default function invoiceTemplate(inv: any) {
-
   const purchaseTotal = (inv.items || []).reduce((s: number, i: any) => {
-    const base = i.weight * i.rate
-    return s + base + (base * (i.makingPercent || 0)) / 100
-  }, 0)
+    const base = i.weight * i.rate;
+    return s + base + (base * (i.makingPercent || 0)) / 100;
+  }, 0);
 
-  const gst = inv.gstEnabled ? purchaseTotal * 0.03 : 0
-  const purchaseFinal = purchaseTotal + gst
+  const gst = inv.gstEnabled ? purchaseTotal * 0.03 : 0;
+  const purchaseFinal = purchaseTotal + gst;
 
-  const exchangeTotal = (inv.exchangeItems || []).reduce((s: number, e: any) => {
-    return s + (Number(e.amount) || 0)
-  }, 0)
+  const exchangeTotal = (inv.exchangeItems || []).reduce(
+    (s: number, e: any) => {
+      return s + (Number(e.amount) || 0);
+    },
+    0
+  );
 
-  const finalPayable = purchaseFinal - exchangeTotal
-  const due = Math.max(finalPayable - (inv.paidAmount || 0), 0)
+  const rawFinal = purchaseFinal - exchangeTotal;
 
-  const watermark = Array.from({ length: 120 }).map(() =>
-    `<div style="font-size:34px;font-weight:900;color:#000;opacity:0.04;transform:rotate(-30deg)">R P GUPTA</div>`
-  ).join("")
+  const finalPayable =
+    rawFinal >= 0
+      ? Math.round(rawFinal / 100) * 100
+      : -Math.round(Math.abs(rawFinal) / 100) * 100;
+
+  const safePaid = Math.min(
+    Number(inv.paidAmount || 0),
+    Math.max(finalPayable, 0)
+  );
+
+  const due = finalPayable > 0 ? Math.max(finalPayable - safePaid, 0) : 0;
+
+  const watermark = Array.from({ length: 120 })
+    .map(
+      () =>
+        `<div style="font-size:34px;font-weight:900;color:#000;opacity:0.04;transform:rotate(-30deg)">R P GUPTA</div>`
+    )
+    .join("");
 
   return `
 <div style="max-width:800px;margin:auto;border:2px solid #000;padding:12px;font-family:Arial;position:relative">
@@ -33,6 +49,7 @@ justify-items:center;
 pointer-events:none;
 z-index:0;
 ">
+
 </div>
 
 <div style="position:relative;z-index:2">
@@ -53,7 +70,9 @@ ${inv.customer?.email || ""}<br><br>
 <b>New Purchase</b>
 <table width="100%" border="1" cellspacing="0" cellpadding="4">
 <tr><th>Item</th><th>Metal</th><th>Purity</th><th>Wt</th><th>Rate</th><th>Making%</th><th>Total</th></tr>
-${(inv.items || []).map((i:any)=>`
+${(inv.items || [])
+  .map(
+    (i: any) => `
 <tr>
 <td>${i.name}</td>
 <td>${i.metal}</td>
@@ -61,9 +80,13 @@ ${(inv.items || []).map((i:any)=>`
 <td>${i.weight}</td>
 <td>${i.rate}</td>
 <td>${i.makingPercent}%</td>
-<td>${((i.weight*i.rate)+((i.weight*i.rate*i.makingPercent)/100)).toFixed(2)}</td>
+<td>${(i.weight * i.rate + (i.weight * i.rate * i.makingPercent) / 100).toFixed(
+      2
+    )}</td>
 </tr>
-`).join("")}
+`
+  )
+  .join("")}
 </table>
 
 <p>Purchase Total: ₹${purchaseTotal.toFixed(2)}</p>
@@ -73,7 +96,9 @@ ${(inv.items || []).map((i:any)=>`
 <b>Old Gold / Silver Exchange</b>
 <table width="100%" border="1" cellspacing="0" cellpadding="4">
 <tr><th>Description</th><th>Metal</th><th>Wt</th><th>Rate</th><th>Amount</th></tr>
-${(inv.exchangeItems||[]).map((e:any)=>`
+${(inv.exchangeItems || [])
+  .map(
+    (e: any) => `
 <tr>
 <td>${e.description}</td>
 <td>${e.metal}</td>
@@ -81,21 +106,28 @@ ${(inv.exchangeItems||[]).map((e:any)=>`
 <td>${e.rate}</td>
 <td>${Number(e.amount || 0).toFixed(2)}</td>
 </tr>
-`).join("")}
+`
+  )
+  .join("")}
 </table>
 
 <p><b>Total Exchange:</b> ₹${exchangeTotal.toFixed(2)}</p>
 
-<h3>Final Payable: ₹${finalPayable.toFixed(2)}</h3>
-<p>Paid: ₹${(inv.paidAmount||0).toFixed(2)}</p>
+<h3>Final Payable (Rounded): ₹${finalPayable.toFixed(2)}</h3>
+<p>Actual Total: ₹${rawFinal.toFixed(2)}</p>
+<p>Paid: ₹${safePaid.toFixed(2)}</p>
 <p>Due: ₹${due.toFixed(2)}</p>
 
 <b>Due Date / Time:</b> ${inv.dueDateTime || ""}<br>
 <b>Remark / Note:</b> ${inv.remark || ""}<br><br>
 
-${inv.status==="CANCELLED" ? `<h1 style="color:red;text-align:center">CANCELLED</h1>` : ``}
+${
+  inv.status === "CANCELLED"
+    ? `<h1 style="color:red;text-align:center">CANCELLED</h1>`
+    : ``
+}
 
 </div>
 </div>
-`
+`;
 }

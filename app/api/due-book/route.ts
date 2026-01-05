@@ -37,33 +37,37 @@ export async function GET() {
         const purchaseFinal = purchaseTotal + gst;
 
         // -----------------------------
-        // 4️⃣ EXCHANGE TOTAL (MANUAL FIX)
+        // 4️⃣ EXCHANGE TOTAL
         // -----------------------------
         const exchangeTotal = (inv.exchangeItems || []).reduce(
           (sum: number, ex: any) => {
-            const rate = Number(ex.rate || 0);
-            const purity = Number(ex.purity || 0);
-            const weight = Number(ex.weight || 0);
             return sum + (Number(ex.amount) || 0);
           },
           0
         );
 
         // -----------------------------
-        // 5️⃣ TOTAL AMOUNT
+        // 5️⃣ RAW ACTUAL TOTAL
         // -----------------------------
-        const totalAmount = Math.max(
-          purchaseFinal - exchangeTotal,
-          0
-        );
+        const rawFinal = purchaseFinal - exchangeTotal;
 
         // -----------------------------
-        // 6️⃣ PAID & DUE (FIXED)
+        // 6️⃣ ROUND FIGURE FINAL PAYABLE
         // -----------------------------
-        const paidAmount = Number(inv.paidAmount || 0);
+        const totalAmount =
+          rawFinal >= 0
+            ? Math.round(rawFinal / 100) * 100
+            : -Math.round(Math.abs(rawFinal) / 100) * 100;
 
-        // 🔒 IMPORTANT: DUE IS FIXED VALUE
-        const dueAmount = Math.max(totalAmount - paidAmount, 0);
+        // -----------------------------
+        // 7️⃣ SAFE PAID & DUE
+        // -----------------------------
+        const safePaid = Math.min(Number(inv.paidAmount || 0), Math.max(totalAmount, 0));
+
+        const dueAmount =
+          totalAmount > 0
+            ? Math.max(totalAmount - safePaid, 0)
+            : 0;
 
         return {
           invoiceNo: inv.invoiceNo,
@@ -71,7 +75,7 @@ export async function GET() {
           dueDateTime: inv.dueDateTime || "",
 
           totalAmount,
-          paidAmount,
+          paidAmount: safePaid,
           dueAmount,
 
           payments: Array.isArray(inv.payments)
@@ -86,7 +90,6 @@ export async function GET() {
           },
         };
       })
-      // 🔥 ONLY SHOW PENDING DUES
       .filter((d) => Number(d.dueAmount) > 0);
 
     return NextResponse.json({ dueBook });
